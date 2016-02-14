@@ -1,0 +1,344 @@
+---
+- name: Debian | Harden
+  include: debian.yml
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+- name: Redhat | Harden
+  include: redhat.yml
+  when: ansible_os_family == "RedHat" or ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+
+## switch to role https://galaxy.ansible.com/detail#/role/102
+#- name: git clone rbenv
+#  git: repo=git://github.com/sstephenson/rbenv.git
+#       dest=/home/{{ scumblr_rails_user }}/.rbenv
+#       accept_hostkey=true
+#
+#- name: git clone ruby-build
+#  git: repo=git://github.com/sstephenson/ruby-build.git
+#       dest=/home/{{ scumblr_rails_user }}/.rbenv/plugins/ruby-build
+#       accept_hostkey=true
+#
+
+- user: name="{{ scumblr_rails_user }}" comment="Scumblr rails app user" shell=/bin/bash
+
+- name: ensure right owner for .rbenv
+  file: "dest=/home/{{ scumblr_rails_user }}/.rbenv owner={{ scumblr_rails_user }} recurse=yes state=directory"
+
+- name: update bashrc with appropriate rails env
+  lineinfile: 'dest=/home/{{ scumblr_rails_user }}/.bashrc line="{{ item }}"'
+#  lineinfile: 'dest=/home/{{ scumblr_rails_user }}/.bashrc line=\\"{{ item }}\\"'
+#  lineinfile: 'dest=/home/{{ scumblr_rails_user }}/.bashrc line=\"{{ item }}\"'
+  with_items:
+    - 'export PATH="$HOME/.rbenv/bin:$PATH"'
+    - 'export PATH="$HOME/.rbenv/plugins/ruby-build/bin:$PATH"'
+#    - 'eval \"$(rbenv init -)\"'
+    - 'eval "$(rbenv init -)"'
+## to ensure default actions are on production server else change on cli
+    - 'export RAILS_ENV={{ scumblr_rails_env }}'
+
+- gem: name=rails version=4.0.9 state=present
+  become: yes
+  become_user: "{{ scumblr_rails_user }}"
+
+- file: dest="{{ scumblr_root }}" mode=0755 state=directory owner="{{ scumblr_rails_user }}"
+
+## FIXME! not executing inside rbenv
+#- gem: name="{{ item }}" state=present user_install=yes
+## FIXME! not idempotent... quick stat to avoid repetition but far from perfect
+- stat: path="/home/{{ scumblr_rails_user }}/.rbenv/shims/sidekiq"
+  register: gemdep
+- name: install gem dependencies inside rbenv
+  command: "bash -lc \"gem install {{ item }}\" chdir={{ scumblr_root }}"
+  with_items:
+    - bundler
+    - devise
+    - cancan
+    - sidekiq
+  become: yes
+  become_user: "{{ scumblr_rails_user }}"
+  when: not gemdep.stat.exists
+ 
+## ignore_errors as if repeating, get: msg: Local modifications exist in repository (force=no).
+- name: git clone scumblr
+  git: repo=https://github.com/Netflix/Scumblr.git
+       dest="{{ scumblr_root }}"
+  ignore_errors: true
+  become: yes
+  become_user: "{{ scumblr_rails_user }}"
+
+- file: dest="{{ scumblr_root }}/log" state=directory mode=0755 owner="{{ scumblr_rails_user }}"
+- stat: path="{{ scumblr_root }}/log/production.log"
+  register: slog
+- file: dest="{{ scumblr_root }}/log/production.log" state=touch mode=0666 owner="{{ scumblr_rails_user }}"
+  when: not slog.stat.exists
+- file: dest="{{ scumblr_root }}/tmp/pids" state=directory mode=0755 owner="{{ scumblr_rails_user }}"
+#- acl: name="{{ scumblr_root }}/db" entity="{{ www_user }}" etype=user permissions="rwx" state=present
+- acl: name="{{ scumblr_root }}/db/schema.rb" entity="{{ www_user }}" etype=user permissions="rw-" state=present
+## v2
+#- acl: name="{{ scumblr_root }}/db" entity="{{ www_user }}" etype=user permissions="rwx" state=present recursive=yes
+
+## FIXME! not idempotent
+- name: rbenv rehash
+  command: "bash -lc \"rbenv rehash\" chdir={{ scumblr_root }}"
+  become: yes
+  become_user: "{{ scumblr_rails_user }}"
+
+## v2
+#  bundler: state=present executable="{{ scumblr_root }}"
+## OR https://github.com/drewda/ansible-rails
+## FIXME! not idempotent
+- name: bundle install
+  command: "bash -lc \"bundle install\" chdir={{ scumblr_root }}"
+  become: yes
+  become_user: "{{ scumblr_rails_user }}"
+
+- stat: path="{{ scumblr_root }}/db/{{ scumblr_rails_env }}.sqlite3"
+  register: railsdb
+- name: rake db:create
+  command: "bash -lc \"rake db:create\" chdir={{ scumblr_root }}"
+  environment:
+    RAILS_ENV: '{{ scumblr_rails_env }}'
+  become: yes
+  become_user: "{{ scumblr_rails_user }}"
+  register: dbcreate
+  when: not railsdb.stat.exists
+#- debug: var=dbcreate
+
+## FIXME! done at each execution even if schema already loaded
+- stat: path={{ scumblr_root }}/.ansible_dbschemaload
+  register: touchdbschemaload
+- name: rake db:schema:load
+  command: "bash -lc \"rake db:schema:load\" chdir={{ scumblr_root }}"
+  environment:
+    RAILS_ENV: '{{ scumblr_rails_env }}'
+  become: yes
+  become_user: "{{ scumblr_rails_user }}"
+  register: dbschemaload
+  when: not touchdbschemaload.stat.exists
+- debug: var=dbschemaload
+  when: not touchdbschemaload.stat.exists
+- file: dest={{ scumblr_root }}/.ansible_dbschemaload state=touch
+  become: yes
+  become_user: "{{ scumblr_rails_user }}"
+  when: not touchdbschemaload.stat.exists
+
+- name: generate a rake secret 1
+  command: "bash -lc \"rake secret\" chdir={{ scumblr_root }}"
+  environment:
+    RAILS_ENV: '{{ scumblr_rails_env }}'
+  become: yes
+  become_user: "{{ scumblr_rails_user }}"
+  register: rakesecret
+  changed_when: False
+
+- name: update config with new secret 1
+#  replace: dest="{{ scumblr_root }}/config/initializers/secret_token.rb" regexp="^Scumblr::Application.config.secret_token = '.*$" replace="Scumblr::Application.config.secret_token = '{{ rakesecret.stdout }}'" backup=yes
+  replace: dest="{{ scumblr_root }}/config/initializers/secret_token.rb" regexp="^Scumblr::Application.config.secret_token = '4a10f07f41dd720c9e37e1e7677b30f3857a5f5157f7eae517d6ee5aea00c0e794649114c3b2604aacc4a1125c835f7d01977c19e0d1bcce83bbecd87e9a045c'$" replace="Scumblr::Application.config.secret_token = '{{ rakesecret.stdout }}'" backup=yes
+  notify:
+    - restart rails sidekiq
+    - restart rails server
+
+- name: generate a rake secret 2
+  command: "bash -lc \"rake secret\" chdir={{ scumblr_root }}"
+  environment:
+    RAILS_ENV: '{{ scumblr_rails_env }}'
+  become: yes
+  become_user: "{{ scumblr_rails_user }}"
+  register: rakesecret2
+  changed_when: False
+
+- name: update config with new secret 2
+  replace: dest="{{ scumblr_root }}/config/initializers/devise.rb" regexp="^  config.secret_key = '<DEVISE SECRET KEY>'" replace="  config.secret_key = '{{ rakesecret2.stdout }}'" backup=yes
+  notify:
+    - restart rails sidekiq
+    - restart rails server
+
+- name: check existing rails users
+  command: "bash -lc \"echo \\\"User.all\\\" | rails console\" chdir={{ scumblr_root }}"
+  environment:
+    RAILS_ENV: '{{ scumblr_rails_env }}'
+  become: yes
+  become_user: "{{ scumblr_rails_user }}"
+  register: userall
+  changed_when: false
+## FIXME! this doesn't fail when user already exists and is always in changed state or when insertion failed...
+#  command: "bash -lc \"echo User.new(:email => '{{ rails_user }}', :password => '{{ rails_pass }}', :password_confirmation => '{{ rails_pass }}', :admin => 'true').save | rails console\" chdir={{ scumblr_root }}"
+#  command: "bash -lc \"echo User.new({{ ':' }}email => '{{ rails_user }}', {{ ':' }}password => '{{ rails_pass }}', {{ ':' }}password_confirmation => '{{ rails_pass }}', {{ ':' }}admin => 'true').save | rails console\" chdir={{ scumblr_root }}"
+- name: add rails user
+  command: "bash -lc \"echo \\\"user = User.new({{ ':' }}email => '{{ scumblr_rails_webuser }}', {{ ':' }}password => '{{ scumblr_rails_webpass }}', {{ ':' }}password_confirmation => '{{ scumblr_rails_webpass }}', {{ ':' }}admin => 'true'); user.save\\\" | rails console\" chdir={{ scumblr_root }}"
+  environment:
+    RAILS_ENV: '{{ scumblr_rails_env }}'
+  become: yes
+  become_user: "{{ scumblr_rails_user }}"
+  register: railsadduser
+  notify:
+    - restart rails sidekiq
+    - restart rails server
+  when: not "{{ scumblr_rails_webuser }}" in userall.stdout
+#- debug: var=railsadduser
+
+- stat: path="{{ scumblr_root }}/config/initializers/scumblr.rb"
+  register: conf
+- name: create services API key config
+  command: "rsync -ci {{ scumblr_root }}/config/initializers/scumblr.rb.sample {{ scumblr_root }}/config/initializers/scumblr.rb"
+  become: yes
+  become_user: "{{ scumblr_rails_user }}"
+  register: rsync_result
+  changed_when: 'rsync_result.stdout != ""'
+  when: not conf.stat.exists
+  notify:
+    - restart rails sidekiq
+    - restart rails server
+
+- name: set services API key config - facebook_app_id
+  replace: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  #config.facebook_app_id = \'\'' replace='  config.facebook_app_id = \'{{ scumblr_facebook_app_id }}\''"
+  when: scumblr_facebook_app_id is defined and scumblr_facebook_app_id != ""
+  notify:
+    - restart rails sidekiq
+    - restart rails server
+- name: set services API key config - facebook_app_secret
+  replace: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  #config.facebook_app_secret = \'\'' replace='  config.facebook_app_secret = \'{{ scumblr_facebook_app_secret }}\''"
+  when: scumblr_facebook_app_secret is defined and scumblr_facebook_app_secret != ""
+  notify:
+    - restart rails sidekiq
+    - restart rails server
+- name: set services API key config - google_developer_key
+  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.google_developer_key = .*' line='  config.google_developer_key = \'{{ scumblr_google_developer_key }}\'' insertafter='#config.google_application_version'"
+  when: scumblr_google_developer_key is defined and scumblr_google_developer_key != ""
+  notify:
+    - restart rails sidekiq
+    - restart rails server
+- name: set services API key config - google_cx
+  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.google_cx = .*' line='  config.google_cx = \'{{ scumblr_google_cx }}\'' insertafter='#config.google_application_version'"
+  when: scumblr_google_cx is defined and scumblr_google_cx != ""
+  notify:
+    - restart rails sidekiq
+    - restart rails server
+- name: set services API key config - google_application_name
+  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.google_application_name = .*' line='  config.google_application_name = \'{{ scumblr_google_application_name }}\'' insertafter='#config.google_application_version'"
+  when: scumblr_google_application_name is defined and scumblr_google_application_name != ""
+  notify:
+    - restart rails sidekiq
+    - restart rails server
+- name: set services API key config - google_application_version
+  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.google_application_version = .*' line='  config.google_application_version = \'{{ scumblr_google_application_version }}\'' insertafter='#config.google_application_version'"
+  when: scumblr_google_application_version is defined and scumblr_google_application_version != ""
+  notify:
+    - restart rails sidekiq
+    - restart rails server
+- name: set services API key config - youtube_developer_key
+  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.youtube_developer_key = .*' line='  config.youtube_developer_key = \'{{ scumblr_youtube_developer_key }}\'' insertafter='#config.youtube_developer_key'"
+  when: scumblr_youtube_developer_key is defined and scumblr_youtube_developer_key != ""
+  notify:
+    - restart rails sidekiq
+    - restart rails server
+- name: set services API key config - youtube_application_name
+  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.youtube_application_name = .*' line='  config.youtube_application_name = \'{{ scumblr_youtube_application_name }}\'' insertafter='#config.youtube_application_name'"
+  when: scumblr_youtube_application_name is defined and scumblr_youtube_application_name != ""
+  notify:
+    - restart rails sidekiq
+    - restart rails server
+- name: set services API key config - youtube_application_version
+  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.youtube_application_version = .*' line='  config.youtube_application_version = \'{{ scumblr_youtube_application_version }}\'' insertafter='#config.youtube_application_version'"
+  when: scumblr_youtube_application_version is defined and scumblr_youtube_application_version != ""
+  notify:
+    - restart rails sidekiq
+    - restart rails server
+- name: set services API key config - twitter_consumer_key
+  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.twitter_consumer_key = .*' line='  config.twitter_consumer_key = \'{{ scumblr_twitter_consumer_key }}\'' insertafter='#config.twitter_consumer_key'"
+  when: scumblr_twitter_consumer_key is defined and scumblr_twitter_consumer_key != ""
+  notify:
+    - restart rails sidekiq
+    - restart rails server
+- name: set services API key config - twitter_consumer_secret
+  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.twitter_consumer_secret = .*' line='  config.twitter_consumer_secret = \'{{ scumblr_twitter_consumer_secret }}\'' insertafter='#config.twitter_consumer_secret'"
+  when: scumblr_twitter_consumer_secret is defined and scumblr_twitter_consumer_secret != ""
+  notify:
+    - restart rails sidekiq
+    - restart rails server
+- name: set services API key config - twitter_access_token
+  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.twitter_access_token = .*' line='  config.twitter_access_token = \'{{ scumblr_twitter_access_token }}\'' insertafter='#config.twitter_access_token'"
+  when: scumblr_twitter_access_token is defined and scumblr_twitter_access_token != ""
+  notify:
+    - restart rails sidekiq
+    - restart rails server
+- name: set services API key config - twitter_access_token_secret
+  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.twitter_access_token_secret = .*' line='  config.twitter_access_token_secret = \'{{ scumblr_twitter_access_token_secret }}\'' insertafter='#config.twitter_access_token_secret'"
+  when: scumblr_twitter_access_token_secret is defined and scumblr_twitter_access_token_secret != ""
+  notify:
+    - restart rails sidekiq
+    - restart rails server
+- name: set services API key config - sketchy_url
+  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.sketchy_url = .*' line='  config.sketchy_url = \'{{ scumblr_sketchy_url }}\'' insertafter='#config.sketchy_url'"
+  when: scumblr_sketchy_url is defined and scumblr_sketchy_url != ""
+  notify:
+    - restart rails sidekiq
+    - restart rails server
+- name: set services API key config - sketchy_use_ssl
+  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.sketchy_use_ssl = .*' line='  config.sketchy_use_ssl = \'{{ scumblr_sketchy_use_ssl }}\'' insertafter='#config.sketchy_use_ssl'"
+  when: scumblr_sketchy_use_ssl is defined and scumblr_sketchy_use_ssl != ""
+  notify:
+    - restart rails sidekiq
+    - restart rails server
+- name: set services API key config - sketchy_verify_ssl
+  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.sketchy_verify_ssl = .*' line='  config.sketchy_verify_ssl = \'{{ scumblr_sketchy_verify_ssl }}\'' insertafter='#config.sketchy_verify_ssl'"
+  when: scumblr_sketchy_verify_ssl is defined and scumblr_sketchy_verify_ssl != ""
+  notify:
+    - restart rails sidekiq
+    - restart rails server
+- name: set services API key config - sketchy_tag_status_code
+  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.sketchy_tag_status_code = .*' line='  config.sketchy_tag_status_code = \'{{ scumblr_sketchy_tag_status_code }}\'' insertafter='#config.sketchy_tag_status_code'"
+  when: scumblr_sketchy_tag_status_code is defined and scumblr_sketchy_tag_status_code != ""
+  notify:
+    - restart rails sidekiq
+    - restart rails server
+- name: set services API key config - sketchy_access_token
+  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.sketchy_access_token = .*' line='  config.sketchy_access_token = \'{{ scumblr_sketchy_access_token }}\'' insertafter='#config.sketchy_access_token'"
+  when: scumblr_sketchy_access_token is defined and scumblr_sketchy_access_token != ""
+  notify:
+    - restart rails sidekiq
+    - restart rails server
+
+- name: ensure redis is bind to localhost
+  lineinfile: dest={{ redis_conf }} line='bind 127.0.0.1'
+  notify:
+    - restart redis
+- name: ensure service are enabled and started
+  service: name={{ redis_svc }} state=started enabled=yes
+
+#- name: check if sidekiq already running
+#  command: pgrep -f sidekiq
+#  register: sidekiqrun
+#  changed_when: False
+#  ignore_errors: true
+#- name: start rails sidekiq
+##  command: "bash -lc \"bundle exec sidekiq -P tmp/pids/sidekiq.pid -l {{ scumblr_root }}/log/sidekiq.log &\" chdir={{ scumblr_root }}"
+#  command: "bash -lc \"bundle exec sidekiq -P tmp/pids/sidekiq.pid -l {{ scumblr_root }}/log/sidekiq.log -d\" chdir={{ scumblr_root }}"
+#  environment:
+#    RAILS_ENV: '{{ scumblr_rails_env }}'
+#  become: yes
+#  become_user: "{{ scumblr_rails_user }}"
+#  when: sidekiqrun is defined and (sidekiqrun.stdout != "" or sidekiqrun.rc != 0)
+#  register: sidekiqexec
+#- debug: var=sidekiqexec
+#
+#- name: check if rails master already running
+#  command: pgrep -f "rails master"
+#  register: railsmasterrun
+#  changed_when: False
+#  ignore_errors: true
+#- name: start rails server
+#  command: "bash -lc \"bundle exec rails s -d > /tmp/rails-s.log 2>&1\" chdir={{ scumblr_root }}"
+#  environment:
+#    RAILS_ENV: '{{ scumblr_rails_env }}'
+#  become: yes
+#  become_user: "{{ scumblr_rails_user }}"
+#  when: railsmasterrun is defined and (railsmasterrun.stdout != "" or railsmasterrun.rc != 0)
+#  register: railsexec
+#- debug: var=railsexec
+
+## Re run scumblr search every 2 hours?
+- cron: name="rake sync_all" minute=0 hour="*/2"
+        user="{{ scumblr_rails_user }}" job="cd {{ scumblr_root }} && rake sync_all"
+        cron_file=ansible_yum-autoupdate
+  when: scumblr_cron_rakesync is defined and scumblr_cron_rakesync

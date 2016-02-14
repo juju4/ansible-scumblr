@@ -1,0 +1,58 @@
+---
+
+- set_fact:
+    www_user: nginx
+    redis_svc: redis
+    redis_conf: /etc/redis.conf
+#    supervisor_svc: supervisor
+
+- name: Redhat | Scumblr dependencies packages install
+  yum: name={{item}} state=present update_cache=yes
+  with_items:
+    - git
+    - libxml2-devel
+    - bison
+    - openssl
+    - zlib
+    - libxslt-devel
+    - openssl-devel
+    - libffi-devel
+    - libpqxx-devel
+    - autoconf
+    - glibc-devel
+    - readline-devel
+    - zlib-devel
+    - libtool
+    - sqlite-devel
+    - libcurl
+#    - libmagickcore-dev
+    - ruby-devel
+#    - libmagickwand-dev
+    - python-wand
+    - ImageMagick-devel
+    - acl
+
+- name: Redhat | Ensure daemons are running and enabled on boot.
+  service: name={{ item }} state=started enabled=yes
+  with_items:
+    - nginx
+#    - "{{ supervisor_svc }}"
+
+- stat: path=/usr/lib/systemd/system/sidekiq.conf
+  register: sidekiqinit
+- name: download upstart script for sidekiq
+  get_url:
+    url: https://raw.githubusercontent.com/mperham/sidekiq/master/examples/systemd/sidekiq.service
+    dest: /usr/lib/systemd/system/sidekiq.conf
+    mode: 0644
+  when: not sidekiqinit.stat.exists
+
+- name: review configuration of upstart script for sidekiq
+  replace: dest=/usr/lib/systemd/system/sidekiq.conf regexp="{{ item.re }}" replace="{{ item.rep }}"
+  with_items:
+    - { re: '^User=deploy', rep: 'User={{ scumblr_rails_user }}' }
+    - { re: '^WorkingDirectory=/opt/myapp/current', rep: 'WorkingDirectory={{ scumblr_root }}' }
+  notify:
+    - restart rails sidekiq
+    - restart rails server
+
