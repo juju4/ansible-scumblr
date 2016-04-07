@@ -36,7 +36,8 @@
 ## to ensure default actions are on production server else change on cli
     - 'export RAILS_ENV={{ scumblr_rails_env }}'
 
-- gem: name=rails version=4.0.9 state=present
+- name: install rails 4.0.9
+  gem: name=rails version=4.0.9 state=present
   become: yes
   become_user: "{{ scumblr_rails_user }}"
 

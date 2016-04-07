@@ -1,0 +1,18 @@
+---
+
+- hosts: all
+  vars:
+    - scumblr_rails_user: travis
+    - rbenv:
+        env: user
+        version: v0.4.0
+        ruby_version: 2.0.0-p481
+    - rbenv_repo: "https://github.com/sstephenson/rbenv.git"
+    - rbenv_plugins:
+        - { name: "ruby-build",         repo: "https://github.com/sstephenson/ruby-build.git",         version: "v20151028" }
+    - rbenv_users:
+        - "{{ scumblr_rails_user }}"
+  roles:
+    - sketchy
+    - scumblr
+
