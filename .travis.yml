@@ -7,6 +7,7 @@ before_install:
  - sudo apt-get install -qq python-apt python-pycurl
  - ln -s ansible-scumblr ../scumblr
  - git clone https://github.com/juju4/ansible-sketchy.git ../sketchy
+ - git clone https://github.com/zzet/ansible-rbenv-role ../zzet.rbenv
 ## for local travis execution as we use same default.yml than kitchen
  - mkdir /tmp/kitchen
  - ln -s /home/travis/build/juju4/ansible-scumblr/test/integration/default/tmp /tmp/kitchen/tmp
