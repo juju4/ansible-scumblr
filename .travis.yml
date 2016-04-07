@@ -6,6 +6,7 @@ before_install:
  - sudo apt-get update -qq
  - sudo apt-get install -qq python-apt python-pycurl
  - ln -s ansible-scumblr ../scumblr
+ - git clone https://github.com/juju4/ansible-sketchy.git ../sketchy
 ## for local travis execution as we use same default.yml than kitchen
  - mkdir /tmp/kitchen
  - ln -s /home/travis/build/juju4/ansible-scumblr/test/integration/default/tmp /tmp/kitchen/tmp
@@ -23,5 +24,10 @@ script:
   - "ansible-playbook -i inventory --connection=local --sudo -vvvv test/integration/default/default.yml"
 
 # Run the role/playbook again, checking to make sure it's idempotent.
-  - "ansible-playbook -i inventory test/integration/default/travis.yml --connection=local --sudo | tee /tmp/idempotency.log | grep -q 'changed=0.*failed=0'  && (echo 'Idempotence test: pass' && exit 0)  || (echo 'Idempotence test: fail' && cat /tmp/idempotency.log && exit 1)"
+  - "ansible-playbook -i inventory test/integration/default/default.yml --connection=local --sudo | tee /tmp/idempotency.log | grep -q 'changed=0.*failed=0'  && (echo 'Idempotence test: pass' && exit 0)  || (echo 'Idempotence test: fail' && exit 1)"
+#  - >
+#  ansible-playbook -i inventory test/integration/default/default.yml --connection=local --sudo
+#  | grep -q 'changed=0.*failed=0'
+#  && (echo 'Idempotence test: pass' && exit 0)
+#  || (echo 'Idempotence test: fail' && exit 1)
 
