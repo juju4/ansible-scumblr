@@ -1,7 +1,8 @@
 ---
 
 ## if setting on a separate user
-scumblr_rails_user: "{{ ansible_ssh_user }}"
+scumblr_rails_user: _scumblr
+#scumblr_rails_user: "{{ ansible_ssh_user }}"
 #scumblr_rails_user: scumblr
 
 scumblr_root: /var/Scumblr

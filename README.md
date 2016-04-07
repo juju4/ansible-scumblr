@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/juju4/ansible-scumblr.svg?branch=master)](https://travis-ci.org/juju4/ansible-scumblr)
 # Scumblr ansible role
 
 Ansible role to setup Netflix scumblr.
