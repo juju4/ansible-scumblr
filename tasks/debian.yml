@@ -5,7 +5,7 @@
     www_user: www-data
     redis_svc: redis-server
     redis_conf: /etc/redis/redis.conf
-    supervisor_svc: supervisord
+    supervisor_svc: supervisor
 
 - name: apt | scumblr packages dependencies
   apt: name={{item}} state=present update_cache=yes cache_valid_time=3600
