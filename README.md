@@ -72,7 +72,9 @@ Other variables are also available for API key of Facebook, Google, Youtube and 
 you can test this role with test kitchen.
 In the role folder, run
 ```
+$ cd /path/to/roles/scumblr
 $ kitchen verify
+$ kitchen login
 ```
 
 Known bugs
