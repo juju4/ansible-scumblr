@@ -52,8 +52,13 @@ setup() {
     [[ "$output" =~ "<html><body>You are being" ]]
 }
 
+@test "Scumblr Web API interface should be accessible" {
+    run curl -sSqk https://localhost/api/v1.0/capture
+    [ "$status" -eq 0 ]
+}
+
 @test "Do a sketchy capture of google.com" {
-    run curl -sSq "http://localhost:8000/eager?url=http://google.com&type=html"
+    run curl -sSq "http://localhost:8000/eager?url=http://google.com&type=html" | tee /tmp/sketchy-capture.out
 ## Not sure why but fails on centos71 run
 #    [ "$status" -eq 0 ]
     [[ "$output" =~ "<title>Google</title>" ]]

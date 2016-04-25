@@ -14,8 +14,13 @@ provisioner:
 
 platforms:
   - name: ubuntu-14.04
-## 20160119 disabling centos platform because ansible v2 out and epel still in 1.9.4 (some quote escaping act differently)
-#  - name: centos-7.1
+    driver_config:
+      network:
+        - ["forwarded_port", {guest: 8000, host: 8894}]
+  - name: centos-7.1
+    driver_config:
+      network:
+        - ["forwarded_port", {guest: 8000, host: 8897}]
 
 suites:
   - name: default

@@ -52,9 +52,14 @@
   command: "bash -lc \"gem install {{ item }}\" chdir={{ scumblr_root }}"
   with_items:
     - bundler
-    - devise
+#    - devise
     - cancan
     - sidekiq
+  become: yes
+  become_user: "{{ scumblr_rails_user }}"
+  when: not gemdep.stat.exists
+- name: install gem dependencies inside rbenv - devise
+  command: "bash -lc \"gem install devise -v 3.5.7\" chdir={{ scumblr_root }}"
   become: yes
   become_user: "{{ scumblr_rails_user }}"
   when: not gemdep.stat.exists
@@ -88,7 +93,7 @@
 #  bundler: state=present executable="{{ scumblr_root }}"
 ## OR https://github.com/drewda/ansible-rails
 ## FIXME! not idempotent
-- name: bundle install
+- name: bundle install of scumblr
   command: "bash -lc \"bundle install\" chdir={{ scumblr_root }}"
   become: yes
   become_user: "{{ scumblr_rails_user }}"

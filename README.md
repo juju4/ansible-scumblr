@@ -4,12 +4,15 @@
 Ansible role to setup Netflix scumblr.
 Scumblr is a web application that allows performing periodic searches and storing / taking actions on the identified results. Scumblr uses the Workflowable gem to allow setting up flexible workflows for different types of results.
 https://vimeo.com/113447971
+http://techblog.netflix.com/2014/08/announcing-scumblr-and-sketchy-search.html
+https://github.com/Netflix/Scumblr
 
 ## Requirements & Dependencies
 
 ### Ansible
 It was tested on the following versions:
  * 1.9
+ * 2.0
 
 ### Operating systems
 
@@ -49,6 +52,7 @@ Google Hacking Database
 COMPANY security
 COMPANY leak
 COMPANY vulnerability
+COMPANY web mail
 websites hacked 0wned
 denial of service, ddos
 google news, reddit
@@ -107,6 +111,10 @@ http://stackoverflow.com/questions/16932833/start-rails-server-automatically-aft
 w apache+passenger
 
 * Browser redirect from IP:3000 to IP?
+
+* devise requires Ruby version >= 2.1.0.
+scumblr wiki recommends 2.0 w bundle command
+forced version 3.5.7 against 4.0.0 (both Apr 2016)
 
 ## License
 

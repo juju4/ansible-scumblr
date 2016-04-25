@@ -6,7 +6,9 @@
     - rbenv:
         env: user
         version: v0.4.0
+## From scumblr wiki (bundle command dependency)
         ruby_version: 2.0.0-p481
+#        ruby_version: 2.2.3
     - rbenv_repo: "https://github.com/sstephenson/rbenv.git"
     - rbenv_plugins:
         - { name: "ruby-build",         repo: "https://github.com/sstephenson/ruby-build.git",         version: "v20151028" }
