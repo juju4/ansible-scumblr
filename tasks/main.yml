@@ -19,15 +19,18 @@
 #       accept_hostkey=true
 #
 
+- set_fact:
+    scumblr_rails_user_home: "/home/{{ scumblr_rails_user }}"
+
 - user: name="{{ scumblr_rails_user }}" comment="Scumblr rails app user" shell=/bin/bash
 
 - name: ensure right owner for .rbenv
-  file: "dest=/home/{{ scumblr_rails_user }}/.rbenv owner={{ scumblr_rails_user }} recurse=yes state=directory"
+  file: "dest={{ scumblr_rails_user_home }}/.rbenv owner={{ scumblr_rails_user }} recurse=yes state=directory"
 
 - name: update bashrc with appropriate rails env
-  lineinfile: 'dest=/home/{{ scumblr_rails_user }}/.bashrc line="{{ item }}"'
-#  lineinfile: 'dest=/home/{{ scumblr_rails_user }}/.bashrc line=\\"{{ item }}\\"'
-#  lineinfile: 'dest=/home/{{ scumblr_rails_user }}/.bashrc line=\"{{ item }}\"'
+  lineinfile: 'dest={{ scumblr_rails_user_home }}/.bashrc line="{{ item }}"'
+#  lineinfile: 'dest={{ scumblr_rails_user_home }}/.bashrc line=\\"{{ item }}\\"'
+#  lineinfile: 'dest={{ scumblr_rails_user_home }}/.bashrc line=\"{{ item }}\"'
   with_items:
     - 'export PATH="$HOME/.rbenv/bin:$PATH"'
     - 'export PATH="$HOME/.rbenv/plugins/ruby-build/bin:$PATH"'
@@ -46,7 +49,7 @@
 ## FIXME! not executing inside rbenv
 #- gem: name="{{ item }}" state=present user_install=yes
 ## FIXME! not idempotent... quick stat to avoid repetition but far from perfect
-- stat: path="/home/{{ scumblr_rails_user }}/.rbenv/shims/sidekiq"
+- stat: path="{{ scumblr_rails_user_home }}/.rbenv/shims/sidekiq"
   register: gemdep
 - name: install gem dependencies inside rbenv
   command: "bash -lc \"gem install {{ item }}\" chdir={{ scumblr_root }}"
@@ -89,12 +92,12 @@
   become: yes
   become_user: "{{ scumblr_rails_user }}"
 
-## v2
-#  bundler: state=present executable="{{ scumblr_root }}"
-## OR https://github.com/drewda/ansible-rails
+## bundler v2 OR https://github.com/drewda/ansible-rails
 ## FIXME! not idempotent
+## FIXME! vagrant stalled on this task
 - name: bundle install of scumblr
-  command: "bash -lc \"bundle install\" chdir={{ scumblr_root }}"
+#  command: "bash -lc \"bundle install\" chdir={{ scumblr_root }}"
+  bundler: "state=present chdir={{ scumblr_root }} executable={{ scumblr_rails_user_home }}/.rbenv/shims/bundle"
   become: yes
   become_user: "{{ scumblr_rails_user }}"
 
