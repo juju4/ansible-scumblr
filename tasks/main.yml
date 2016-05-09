@@ -96,8 +96,8 @@
 ## FIXME! not idempotent
 ## FIXME! vagrant stalled on this task
 - name: bundle install of scumblr
-#  command: "bash -lc \"bundle install\" chdir={{ scumblr_root }}"
-  bundler: "state=present chdir={{ scumblr_root }} executable={{ scumblr_rails_user_home }}/.rbenv/shims/bundle"
+  command: "bash -lc \"bundle install\" chdir={{ scumblr_root }}"
+#  bundler: "state=present chdir={{ scumblr_root }} executable={{ scumblr_rails_user_home }}/.rbenv/shims/bundle"
   become: yes
   become_user: "{{ scumblr_rails_user }}"
 
