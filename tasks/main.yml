@@ -105,17 +105,21 @@
   become: yes
   become_user: "{{ scumblr_rails_user }}"
 
-- file: dest="{{ scumblr_root }}/log" state=directory mode=0755 owner="{{ scumblr_rails_user }}"
+- name: Ensure log directory exists
+  file: dest="{{ scumblr_root }}/log" state=directory mode=0755 owner="{{ scumblr_rails_user }}"
 - stat: path="{{ scumblr_root }}/log/production.log"
   register: slog
 - file: dest="{{ scumblr_root }}/log/production.log" state=touch mode=0666 owner="{{ scumblr_rails_user }}"
   when: not slog.stat.exists
-- file: dest="{{ scumblr_root }}/tmp/pids" state=directory mode=0755 owner="{{ scumblr_rails_user }}"
+- name: Ensure pids directory exists
+  file: dest="{{ scumblr_root }}/tmp/pids" state=directory mode=0755 owner="{{ scumblr_rails_user }}"
 #- acl: name="{{ scumblr_root }}/db" entity="{{ www_user }}" etype=user permissions="rwx" state=present
-- acl: name="{{ scumblr_root }}/db/schema.rb" entity="{{ www_user }}" etype=user permissions="rw-" state=present
+- name: Ensure right permissions on db schema
+  acl: name="{{ scumblr_root }}/db/schema.rb" entity="{{ www_user }}" etype=user permissions="rw-" state=present
 ## v2
 #- acl: name="{{ scumblr_root }}/db" entity="{{ www_user }}" etype=user permissions="rwx" state=present recursive=yes
 
+- debug: var=scumblr_db_adapter
 - name: configure database backend
   template: "src=database.yml.j2 dest={{ scumblr_root }}/config/database.yml backup=yes"
 
@@ -424,8 +428,10 @@
 
 - stat: "path={{ scumblr_db_restorefile }} checksum_algorithm=sha256"
   register: restorefile
+  when: scumblr_db_restorefile is defined and scumblr_db_restorefile != ''
 - stat: path="{{ backupdir }}/.psql_restore-{{ restorefile.stat.checksum }}"
   register: restored
+  when: scumblr_db_restorefile is defined and scumblr_db_restorefile != ''
 - block:
     - name: ensure dest backup dir exists
       file: "dest={{ backupdir }} state=directory mode=0700"

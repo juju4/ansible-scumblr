@@ -3,16 +3,20 @@
 - hosts: all
   vars:
     - scumblr_rails_user: travis
+    - scumblr_db_adapter: sqlite3
     - rbenv:
         env: user
         version: v0.4.0
+## From scumblr wiki (bundle command dependency)
         ruby_version: 2.0.0-p481
     - rbenv_repo: "https://github.com/sstephenson/rbenv.git"
     - rbenv_plugins:
         - { name: "ruby-build",         repo: "https://github.com/sstephenson/ruby-build.git",         version: "v20151028" }
+        - { name: "rbenv-rehash",       repo: "https://github.com/rbenv/rbenv-gem-rehash.git",         version: "v1.0.0" }
     - rbenv_users:
         - "{{ scumblr_rails_user }}"
   roles:
+    - { role: adduser, adduser_user_name: _scumblr, adduser_user_home: '/home/_scumblr', adduser_user_comments: 'Scumblr rails app user', adduser_public_keys: [], adduser_sudoroot: false }
     - sketchy
     - scumblr
 
