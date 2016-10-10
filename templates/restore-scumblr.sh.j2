@@ -1,0 +1,30 @@
+#!/bin/sh
+## restore script for scumblr
+
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin
+umask 022
+
+if [ $# -gt 1 -a -r "$1" ]; then
+    backupfile=$1
+else
+    backupfile={{ backupdir }}/backup-scumblr.tar.gz
+fi
+
+tmpdir=`mktemp -d /tmp/restore.XXXXXX || exit 1`
+{% if scumblr_db_adapter is defined and scumblr_db_adapter == 'postgresql' %}
+dirs="{{ scumblr_root }}/config"
+{% else %}
+dirs="{{ scumblr_root }}/config {{ scumblr_root }}/db"
+{% endif %}
+
+tar xzf $backupfile -C $tmpdir
+
+{% if scumblr_db_adapter is defined and scumblr_db_adapter == 'postgresql' %}
+sudo -u postgres psql --set ON_ERROR_STOP=on -f $tmpdir{{ backupdir }}/pg_dump-scumblr.sql "{{ scumblr_db_database }}_{{ scumblr_rails_env }}"
+sudo -u postgres vacuumdb --dbname="{{ scumblr_db_database }}_{{ scumblr_rails_env }}" --analyze --verbose
+
+{% endif %}
+for d in $dirs; do
+    rsync -rvl $tmpdir/$d $d
+done
+

@@ -1,19 +1,7 @@
 ---
-- name: start rails sidekiq
-  command: "bash -lc \"bundle exec sidekiq -l {{ scumblr_root }}/log/sidekiq.log &\" chdir={{ scumblr_root }}"
-  environment:
-    RAILS_ENV: '{{ scumblr_rails_env }}'
-  become: yes
-  become_user: "{{ scumblr_rails_user }}"
-
-- name: start rails server
-  command: "bash -lc \"bundle exec rails s > /tmp/rails-s.log 2>&1 &\" chdir={{ scumblr_root }}"
-  environment:
-    RAILS_ENV: '{{ scumblr_rails_env }}'
-  become: yes
-  become_user: "{{ scumblr_rails_user }}"
 
 - name: restart rails sidekiq
+#  service: name=sidekiq state=restarted
   command: "bash -lc \"[ X`cat tmp/pids/sidekiq.pid 2>/dev/null` != X ] && kill `cat tmp/pids/sidekiq.pid 2>/dev/null` && sleep 5; bundle exec sidekiq -P tmp/pids/sidekiq.pid -l {{ scumblr_root }}/log/sidekiq.log -d\" chdir={{ scumblr_root }}"
   environment:
     RAILS_ENV: '{{ scumblr_rails_env }}'
@@ -21,6 +9,7 @@
   become_user: "{{ scumblr_rails_user }}"
 
 - name: restart rails server
+#  service: name=scumblr state=restarted
   command: "bash -lc \"[ X`cat tmp/pids/server.pid 2>/dev/null` != X ] && kill `cat tmp/pids/server.pid 2>/dev/null` && sleep 5; bundle exec rails s -d > /tmp/rails-s.log 2>&1\" chdir={{ scumblr_root }}"
   environment:
     RAILS_ENV: '{{ scumblr_rails_env }}'
@@ -29,4 +18,7 @@
 
 - name: restart redis
   service: name={{ redis_svc }} state=restarted
+
+- name: restart postgres
+  service: name=postgresql state=restarted
 

@@ -1,11 +1,5 @@
 ---
 
-- set_fact:
-    www_user: nginx
-    redis_svc: redis
-    redis_conf: /etc/redis.conf
-    supervisor_svc: supervisord
-
 - name: Redhat | Scumblr dependencies packages install
   yum: name={{item}} state=present update_cache=yes
   with_items:
@@ -31,12 +25,7 @@
     - python-wand
     - ImageMagick-devel
     - acl
-
-- name: Redhat | Ensure daemons are running and enabled on boot.
-  service: name={{ item }} state=started enabled=yes
-  with_items:
-    - nginx
-#    - "{{ supervisor_svc }}"
+    - crontabs
 
 - stat: path=/usr/lib/systemd/system/sidekiq.conf
   register: sidekiqinit

@@ -1,0 +1,7 @@
+---
+
+www_user: www-data
+redis_svc: redis-server
+redis_conf: /etc/redis/redis.conf
+supervisor_svc: supervisor
+

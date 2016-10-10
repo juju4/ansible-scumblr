@@ -1,0 +1,18 @@
+[Unit]
+Description=Scumblr web search tool
+Requires=network.target
+Requires=sidekiq.service
+ 
+[Service]
+Type=simple
+User={{ scumblr_rails_user }}
+Group={{ scumblr_rails_user }}
+WorkingDirectory={{ scumblr_root }}
+#ExecStart=/usr/bin/bash -lc 'bundle exec rails server -e {{ scumblr_rails_env }} --bind 0.0.0.0 --port 80'
+ExecStart=/usr/bin/bash -lc 'bundle exec rails server -e {{ scumblr_rails_env }}'
+TimeoutSec=30
+RestartSec=15s
+Restart=always
+ 
+[Install]
+WantedBy=multi-user.target

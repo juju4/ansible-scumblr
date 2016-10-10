@@ -1,0 +1,68 @@
+## /var/Scumblr/config/database.yml
+## http://edgeguides.rubyonrails.org/configuring.html#configuring-a-database
+
+{% if scumblr_db_adapter is defined and scumblr_db_adapter == 'postgresql' %}
+development:
+  adapter: postgresql
+  encoding: unicode
+  database: {{ scumblr_db_database }}_development
+  pool: 5
+  username: {{ scumblr_db_user }}
+  password: {{ scumblr_db_pass }}
+  host: {{ scumblr_db_host }}
+  port: {{ scumblr_db_port }}
+
+  # Schema search path. The server defaults to $user,public
+  #schema_search_path: myapp,sharedapp,public
+
+  # Minimum log levels, in increasing order:
+  #   debug5, debug4, debug3, debug2, debug1,
+  #   log, notice, warning, error, fatal, and panic
+  # The server defaults to notice.
+  #min_messages: warning
+
+# Warning: The database defined as "test" will be erased and
+# re-generated from your development database when you run "rake".
+# Do not set this db to the same as development or production.
+test:
+  adapter: postgresql
+  encoding: unicode
+  database: {{ scumblr_db_database }}_test
+  pool: 5
+  username: {{ scumblr_db_user }}
+  password: {{ scumblr_db_pass }}
+  host: {{ scumblr_db_host }}
+  port: {{ scumblr_db_port }}
+
+production:
+  adapter: postgresql
+  encoding: unicode
+  database: {{ scumblr_db_database }}_production
+  pool: 5
+  username: {{ scumblr_db_user }}
+  password: <%= ENV['SCUMBLR_DATABASE_PASSWORD'] %>
+  host: {{ scumblr_db_host }}
+  port: {{ scumblr_db_port }}
+
+
+{% else %}
+development:
+ adapter: sqlite3
+ database: db/development.sqlite3
+ pool: 5
+ timeout: 5000
+
+staging:
+ adapter: sqlite3
+ database: db/staging.sqlite3
+ pool: 5
+ timeout: 5000
+
+production:
+ adapter: sqlite3
+ database: db/production.sqlite3
+ pool: 5
+ timeout: 5000
+
+
+{% endif %}

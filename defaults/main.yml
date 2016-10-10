@@ -1,17 +1,42 @@
 ---
 
+scriptsdir: /usr/local/bin
+backupdir: /var/_backup
+
 ## if setting on a separate user
 scumblr_rails_user: _scumblr
 #scumblr_rails_user: "{{ ansible_ssh_user }}"
 #scumblr_rails_user: scumblr
+scumblr_rails_user_home: "/home/{{ scumblr_rails_user }}"
 
 scumblr_root: /var/Scumblr
 scumblr_rails_env: development
 #scumblr_rails_env: production
+## config/database.yml
+#scumblr_db_adapter: sqlite3
+## a lot more performant...
+scumblr_db_adapter: postgresql
+scumblr_db_database: db-scumblr-postgresql
+scumblr_db_user: user-scumblr
+scumblr_db_pass: pass-scumblr
+scumblr_db_host: localhost
+scumblr_db_port: 5432
+## for geerlingguy.postgresql role
+postgresql_databases:
+  - name: "{{ scumblr_db_database }}_{{ scumblr_rails_env }}"
+postgresql_users:
+  - name: "{{ scumblr_db_user }}"
+    password: "{{ scumblr_db_pass }}"
+    db: "{{ scumblr_db_database }}_{{ scumblr_rails_env }}"
+#scumblr_db_restorefile: "backup.sql"
 
 ## Note: this user insertion will fail as this email is seen as invalid by rails.
 scumblr_rails_webuser: root@localhost
 scumblr_rails_webpass: root@localhost
+## TODO
+scumblr_web_users:
+  - { user: root@localhost.local, pass: root@localhost, admin: true }
+  - { user: user1@localhost.local, pass: user1@localhost, admin: false }
 
 ## API key
 #scumblr_sketchy_url: http://localhost:80/api/v1.0/capture
@@ -34,4 +59,24 @@ scumblr_rails_webpass: root@localhost
 #scumblr_twitter_access_token_secret:
 
 scumblr_cron_rakesync: false
+
+scumblr_devise_config:
+  - { l: ' config.timeout_in = 30.minutes', i: '# config.timeout_in = 30.minutes' }
+
+scumblr_extra_path: /usr/local/share/scumblr
+## http://davidlebrun.ca/2016/what-is-scumblr/
+scumblr_extra_gems:
+  - { n: shodan, v: 1.0.0 }
+scumblr_extra_providers:
+  - u: 'https://github.com/davidlebr1/ScumblrProviders.git'
+    list:
+      - censys.rb
+      - shodan.rb
+## https://mig5.net/content/monitoring-certificate-transparency-logs-fraudulent-ssl-certs-scumblr = merged
+#scumblr_extra_providers_raw:
+#  - 'https://raw.githubusercontent.com/mig5/Scumblr/certificate_transparency_provider/lib/search_providers/ct.rb'
+#scumblr_extra_config:
+#  - config.shodan_api_key = ''
+#  - config.censys_app_id = ''
+#  - config.censys_secret = ''
 

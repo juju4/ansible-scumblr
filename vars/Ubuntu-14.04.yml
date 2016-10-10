@@ -1,0 +1,13 @@
+---
+
+www_user: www-data
+redis_svc: redis-server
+redis_conf: /etc/redis/redis.conf
+supervisor_svc: supervisor
+
+postgres_confdir: /etc/postgresql/9.3/main
+postgres_pkg:
+    - python-psycopg2
+    - acl
+    - postgresql-9.3
+

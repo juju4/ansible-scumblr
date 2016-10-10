@@ -1,11 +1,26 @@
 ---
-- name: Debian | Harden
+
+- name: Include version-specific variables for Ubuntu.
+  include_vars: "{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml"
+  when: ansible_distribution == 'Ubuntu'
+- name: Include version-specific variables for RedHat
+  include_vars: "RedHat-{{ ansible_distribution_version.split('.')[0] }}.yml"
+  when: ansible_os_family == "RedHat" or ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+
+- name: Debian | scumblr
   include: debian.yml
   when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
 
-- name: Redhat | Harden
+- name: Redhat | scumblr
   include: redhat.yml
   when: ansible_os_family == "RedHat" or ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+
+- name: Ensure daemons are running and enabled on boot.
+  service: name={{ item }} state=started enabled=yes
+  with_items:
+    - nginx
+    - "{{ supervisor_svc }}"
+    - "{{ redis_svc }}"
 
 ## switch to role https://galaxy.ansible.com/detail#/role/102
 #- name: git clone rbenv
@@ -19,10 +34,8 @@
 #       accept_hostkey=true
 #
 
-- set_fact:
-    scumblr_rails_user_home: "/home/{{ scumblr_rails_user }}"
-
-- user: name="{{ scumblr_rails_user }}" comment="Scumblr rails app user" shell=/bin/bash
+- name: create scumblr user
+  user: name="{{ scumblr_rails_user }}" home="{{ scumblr_rails_user_home }}" comment="Scumblr rails app user" shell=/bin/bash
 
 - name: ensure right owner for .rbenv
   file: "dest={{ scumblr_rails_user_home }}/.rbenv owner={{ scumblr_rails_user }} recurse=yes state=directory"
@@ -39,6 +52,10 @@
 ## to ensure default actions are on production server else change on cli
     - 'export RAILS_ENV={{ scumblr_rails_env }}'
 
+- name: install bundler
+  gem: name=bundler state=present
+  become: yes
+  become_user: "{{ scumblr_rails_user }}"
 - name: install rails 4.0.9
   gem: name=rails version=4.0.9 state=present
   become: yes
@@ -49,20 +66,33 @@
 ## FIXME! not executing inside rbenv
 #- gem: name="{{ item }}" state=present user_install=yes
 ## FIXME! not idempotent... quick stat to avoid repetition but far from perfect
+- name: check which gem is used
+  command: "bash -lc \"which {{ item }}\""
+  with_items:
+    - gem
+    - rbenv
+  changed_when: false
+  register: which
+  become: yes
+  become_user: "{{ scumblr_rails_user }}"
+#- debug: var=which
+- fail: msg="FATAL! Not right gem binary! where is rbenv gem?"
+  when: which is defined and which.results[0].stdout != "{{ scumblr_rails_user_home }}/.rbenv/shims/gem"
 - stat: path="{{ scumblr_rails_user_home }}/.rbenv/shims/sidekiq"
   register: gemdep
 - name: install gem dependencies inside rbenv
-  command: "bash -lc \"gem install {{ item }}\" chdir={{ scumblr_root }}"
+  command: "bash -lc \"gem install {{ item.p }} -v {{ item.v }}\" chdir={{ scumblr_root }}"
   with_items:
-    - bundler
-#    - devise
-    - cancan
-    - sidekiq
-  become: yes
-  become_user: "{{ scumblr_rails_user }}"
-  when: not gemdep.stat.exists
-- name: install gem dependencies inside rbenv - devise
-  command: "bash -lc \"gem install devise -v 3.5.7\" chdir={{ scumblr_root }}"
+    - { p: bundler, v: 1.13.2 }
+#    - { p: devise, v: 3.5.7 }
+    - { p: devise, v: 3.3.0 }
+    - { p: cancan, v: 1.6.10 }
+## latest 4.2.2 but ERROR:  Error installing sidekiq:\n\track requires Ruby version >= 2.2.2.
+    - { p: sidekiq, v: 4.1.4 }
+## note: some gem are listed here as they can fail when called with Scumblr bundle install
+    - { p: json, v: 1.8.1 }
+    - { p: ruby_gntp, v: 0.3.4 }
+    - { p: oj, v: 2.10.1 }
   become: yes
   become_user: "{{ scumblr_rails_user }}"
   when: not gemdep.stat.exists
@@ -86,23 +116,33 @@
 ## v2
 #- acl: name="{{ scumblr_root }}/db" entity="{{ www_user }}" etype=user permissions="rwx" state=present recursive=yes
 
-## FIXME! not idempotent
-- name: rbenv rehash
-  command: "bash -lc \"rbenv rehash\" chdir={{ scumblr_root }}"
-  become: yes
-  become_user: "{{ scumblr_rails_user }}"
+- name: configure database backend
+  template: "src=database.yml.j2 dest={{ scumblr_root }}/config/database.yml backup=yes"
+
+## not idempotent = use gem 'rbenv-rehash'
+#- name: rbenv rehash
+#  command: "bash -lc \"rbenv rehash\" chdir={{ scumblr_root }}"
+#  become: yes
+#  become_user: "{{ scumblr_rails_user }}"
 
 ## bundler v2 OR https://github.com/drewda/ansible-rails
-## FIXME! not idempotent
 ## FIXME! vagrant stalled on this task
+## Note: kitchen works with both command, travis only with bash -lc...
+- stat: path={{ scumblr_root }}/.ansible_scumblrbundle
+  register: touchbundle
 - name: bundle install of scumblr
   command: "bash -lc \"bundle install\" chdir={{ scumblr_root }}"
 #  bundler: "state=present chdir={{ scumblr_root }} executable={{ scumblr_rails_user_home }}/.rbenv/shims/bundle"
   become: yes
   become_user: "{{ scumblr_rails_user }}"
+  when: not touchbundle.stat.exists
+- file: dest={{ scumblr_root }}/.ansible_scumblrbundle state=touch
+  when: not touchbundle.stat.exists
 
 - stat: path="{{ scumblr_root }}/db/{{ scumblr_rails_env }}.sqlite3"
   register: railsdb
+- stat: path={{ scumblr_root }}/.ansible_dbcreate
+  register: touchdbcreate
 ## travis only (kitchen OK): FAILED! => {"changed": true, "cmd": ["bash", "-lc", "rake db:create"], "delta": "0:00:02.775480", "end": "2016-04-07 11:39:09.555950", "failed": true, "invocation": {"module_args": {"_raw_params": "bash -lc \"rake db:create\"", "_uses_shell": false, "chdir": "/var/Scumblr", "creates": null, "executable": null, "removes": null, "warn": true}, "module_name": "command"}, "rc": 1, "start": "2016-04-07 11:39:06.780470", "stderr": "rake aborted!\nGem::LoadError: You have already activated rake 10.4.2, but your Gemfile requires rake 10.3.2. Prepending `bundle exec` to your command may solve this.\n/usr/local/rvm/gems/ruby-2.2.3/gems/bundler-1.11.2/lib/bundler/runtime.rb:34:in `block in setup'\n/usr/local/rvm/gems/ruby-2.2.3/gems/bundler-1.11.2/lib/bundler/runtime.rb:19:in `setup'\n/usr/local/rvm/gems/ruby-2.2.3/gems/bundler-1.11.2/lib/bundler.rb:92:in `setup'\n/usr/local/rvm/gems/ruby-2.2.3/gems/bundler-1.11.2/lib/bundler/setup.rb:18:in `<top (required)>'\n/var/Scumblr/config/boot.rb:21:in `<top (required)>'\n/var/Scumblr/config/application.rb:16:in `<top (required)>'\n/var/Scumblr/Rakefile:5:in `<top (required)>'\n(See full trace by running task with --trace)", "stdout": "", "stdout_lines": [], "warnings": []}
 - name: rake db:create
 #  command: "bash -lc \"rake db:create\" chdir={{ scumblr_root }}"
@@ -112,8 +152,12 @@
   become: yes
   become_user: "{{ scumblr_rails_user }}"
   register: dbcreate
-  when: not railsdb.stat.exists
+  when: (not railsdb.stat.exists or scumblr_db_adapter != 'sqlite3') and not touchdbcreate.stat.exists
 #- debug: var=dbcreate
+- file: dest={{ scumblr_root }}/.ansible_dbcreate state=touch
+  become: yes
+  become_user: "{{ scumblr_rails_user }}"
+  when: not touchdbcreate.stat.exists
 
 ## FIXME! done at each execution even if schema already loaded
 - stat: path={{ scumblr_root }}/.ansible_dbschemaload
@@ -148,6 +192,7 @@
   notify:
     - restart rails sidekiq
     - restart rails server
+  no_log: True
 
 - name: generate a rake secret 2
   command: "bash -lc \"bundle exec rake secret\" chdir={{ scumblr_root }}"
@@ -159,7 +204,16 @@
   changed_when: False
 
 - name: update config with new secret 2
-  replace: dest="{{ scumblr_root }}/config/initializers/devise.rb" regexp="^  config.secret_key = '<DEVISE SECRET KEY>'" replace="  config.secret_key = '{{ rakesecret2.stdout }}'" backup=yes
+  replace: dest="{{ scumblr_root }}/config/initializers/devise.rb" regexp={{ item.re }} replace={{ item.rep }} backup=yes
+  with_items:
+    - { re: "^  config.secret_key = '<DEVISE SECRET KEY>'", rep: "  config.secret_key = '{{ rakesecret2.stdout }}'" }
+  notify:
+    - restart rails sidekiq
+    - restart rails server
+  no_log: True
+- name: add config to devise.rb
+  lineinfile: dest="{{ scumblr_root }}/config/initializers/devise.rb" line={{ item.l }} insertafter={{ item.i }}
+  with_items: "{{ scumblr_devise_config }}"
   notify:
     - restart rails sidekiq
     - restart rails server
@@ -173,20 +227,9 @@
   register: userall
   changed_when: false
 ## FIXME! this doesn't fail when user already exists and is always in changed state or when insertion failed...
-#  command: "bash -lc \"echo User.new(:email => '{{ rails_user }}', :password => '{{ rails_pass }}', :password_confirmation => '{{ rails_pass }}', :admin => 'true').save | rails console\" chdir={{ scumblr_root }}"
-#  command: "bash -lc \"echo User.new({{ ':' }}email => '{{ rails_user }}', {{ ':' }}password => '{{ rails_pass }}', {{ ':' }}password_confirmation => '{{ rails_pass }}', {{ ':' }}admin => 'true').save | rails console\" chdir={{ scumblr_root }}"
 - name: add rails user
-  command: "bash -lc \"echo \\\"user = User.new({{ ':' }}email => '{{ scumblr_rails_webuser }}', {{ ':' }}password => '{{ scumblr_rails_webpass }}', {{ ':' }}password_confirmation => '{{ scumblr_rails_webpass }}', {{ ':' }}admin => 'true'); user.save\\\" | rails console\" chdir={{ scumblr_root }}"
-  environment:
-    RAILS_ENV: '{{ scumblr_rails_env }}'
-  become: yes
-  become_user: "{{ scumblr_rails_user }}"
-  register: railsadduser
-  notify:
-    - restart rails sidekiq
-    - restart rails server
-  when: not "{{ scumblr_rails_webuser }}" in userall.stdout
-#- debug: var=railsadduser
+  include: "scumblr-add-user.yml user={{ item.user }} pass={{ item.pass }} adminstatus={{ item.admin }}"
+  with_items: "{{ scumblr_web_users }}"
 
 - stat: path="{{ scumblr_root }}/config/initializers/scumblr.rb"
   register: conf
@@ -280,31 +323,31 @@
     - restart rails sidekiq
     - restart rails server
 - name: set services API key config - sketchy_url
-  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.sketchy_url = .*' line='  config.sketchy_url = \'{{ scumblr_sketchy_url }}\'' insertafter='#config.sketchy_url'"
+  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.sketchy_url = .*' line='  config.sketchy_url = \'{{ scumblr_sketchy_url }}\'' insertafter='# config.sketchy_access_token'"
   when: scumblr_sketchy_url is defined and scumblr_sketchy_url != ""
   notify:
     - restart rails sidekiq
     - restart rails server
 - name: set services API key config - sketchy_use_ssl
-  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.sketchy_use_ssl = .*' line='  config.sketchy_use_ssl = \'{{ scumblr_sketchy_use_ssl }}\'' insertafter='#config.sketchy_use_ssl'"
+  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.sketchy_use_ssl = .*' line='  config.sketchy_use_ssl = \'{{ scumblr_sketchy_use_ssl }}\'' insertafter='# config.sketchy_access_token'"
   when: scumblr_sketchy_use_ssl is defined and scumblr_sketchy_use_ssl != ""
   notify:
     - restart rails sidekiq
     - restart rails server
 - name: set services API key config - sketchy_verify_ssl
-  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.sketchy_verify_ssl = .*' line='  config.sketchy_verify_ssl = \'{{ scumblr_sketchy_verify_ssl }}\'' insertafter='#config.sketchy_verify_ssl'"
+  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.sketchy_verify_ssl = .*' line='  config.sketchy_verify_ssl = \'{{ scumblr_sketchy_verify_ssl }}\'' insertafter='# config.sketchy_access_token'"
   when: scumblr_sketchy_verify_ssl is defined and scumblr_sketchy_verify_ssl != ""
   notify:
     - restart rails sidekiq
     - restart rails server
 - name: set services API key config - sketchy_tag_status_code
-  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.sketchy_tag_status_code = .*' line='  config.sketchy_tag_status_code = \'{{ scumblr_sketchy_tag_status_code }}\'' insertafter='#config.sketchy_tag_status_code'"
+  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.sketchy_tag_status_code = .*' line='  config.sketchy_tag_status_code = \'{{ scumblr_sketchy_tag_status_code }}\'' insertafter='# config.sketchy_access_token'"
   when: scumblr_sketchy_tag_status_code is defined and scumblr_sketchy_tag_status_code != ""
   notify:
     - restart rails sidekiq
     - restart rails server
 - name: set services API key config - sketchy_access_token
-  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.sketchy_access_token = .*' line='  config.sketchy_access_token = \'{{ scumblr_sketchy_access_token }}\'' insertafter='#config.sketchy_access_token'"
+  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.sketchy_access_token = .*' line='  config.sketchy_access_token = \'{{ scumblr_sketchy_access_token }}\'' insertafter='# config.sketchy_access_token'"
   when: scumblr_sketchy_access_token is defined and scumblr_sketchy_access_token != ""
   notify:
     - restart rails sidekiq
@@ -317,39 +360,96 @@
 - name: ensure service are enabled and started
   service: name={{ redis_svc }} state=started enabled=yes
 
-#- name: check if sidekiq already running
-#  command: pgrep -f sidekiq
-#  register: sidekiqrun
-#  changed_when: False
-#  ignore_errors: true
-#- name: start rails sidekiq
-##  command: "bash -lc \"bundle exec sidekiq -P tmp/pids/sidekiq.pid -l {{ scumblr_root }}/log/sidekiq.log &\" chdir={{ scumblr_root }}"
-#  command: "bash -lc \"bundle exec sidekiq -P tmp/pids/sidekiq.pid -l {{ scumblr_root }}/log/sidekiq.log -d\" chdir={{ scumblr_root }}"
-#  environment:
-#    RAILS_ENV: '{{ scumblr_rails_env }}'
-#  become: yes
-#  become_user: "{{ scumblr_rails_user }}"
-#  when: sidekiqrun is defined and (sidekiqrun.stdout != "" or sidekiqrun.rc != 0)
-#  register: sidekiqexec
-#- debug: var=sidekiqexec
-#
-#- name: check if rails master already running
-#  command: pgrep -f "rails master"
-#  register: railsmasterrun
-#  changed_when: False
-#  ignore_errors: true
-#- name: start rails server
-#  command: "bash -lc \"bundle exec rails s -d > /tmp/rails-s.log 2>&1\" chdir={{ scumblr_root }}"
-#  environment:
-#    RAILS_ENV: '{{ scumblr_rails_env }}'
-#  become: yes
-#  become_user: "{{ scumblr_rails_user }}"
-#  when: railsmasterrun is defined and (railsmasterrun.stdout != "" or railsmasterrun.rc != 0)
-#  register: railsexec
-#- debug: var=railsexec
-
 ## Re run scumblr search every 2 hours?
-- cron: name="rake sync_all" minute=0 hour="*/2"
+- name: define cron task to sync every 2 hours
+  cron: name="rake sync_all" minute=0 hour="*/2"
         user="{{ scumblr_rails_user }}" job="cd {{ scumblr_root }} && rake sync_all"
         cron_file=ansible_yum-autoupdate
   when: scumblr_cron_rakesync is defined and scumblr_cron_rakesync
+
+## FIXME! not working
+- name: configure systemd for sidekiq and rails service
+  template: "src=systemd-{{ item }} dest=/lib/systemd/system/{{ item | basename | regex_replace('.j2$', '') }} backup=yes"
+  with_items:
+    - sidekiq.service.j2
+    - scumblr.service.j2
+  when: ansible_system == "Linux" and ansible_service_mgr == 'systemd'
+
+- block:
+    - name: ensure extra providers path exists
+      file: dest={{ scumblr_extra_path }} state=directory mode=0755
+    - name: install extra providers gem dependencies inside rbenv
+      command: "bash -lc \"gem install {{ item.n }} -v {{ item.v }}\" chdir={{ scumblr_root }} creates={{ scumblr_rails_user_home }}/.rbenv/versions/{{ rbenv.ruby_version }}/lib/ruby/gems/{{ rbenv.ruby_version | regex_replace('-[p0-9]*', '') }}/gems/{{ item.n }}-{{ item.v }}"
+      with_items: "{{ scumblr_extra_gems }}"
+      become: yes
+      become_user: "{{ scumblr_rails_user }}"
+    - name: adding extra providers (git)
+      git: "repo={{ item.u }} dest={{ scumblr_extra_path }}/{{ item.u | basename | regex_replace('.git$', '') }}"
+      with_items: "{{ scumblr_extra_providers }}"
+#    - name: enable extra provider in main scumblr install
+#      file: "src={{ scumblr_extra_path }}/{{ item.0.u | basename }}/{{ item.1 }} dest={{ scumblr_root }}/lib/search_providers state=link"
+#      with_subelements:
+#        - "{{ scumblr_extra_providers }}"
+#        - list
+## FIXME! '/var/sketchy/.rbenv/versions/2.0.0-p481/lib/ruby/gems/2.0.0/gems/activesupport-4.0.9/lib/active_support/dependencies.rb:229:in `require': cannot load such file -- shodan (LoadError)'
+##      but ```$ echo 'require shodan' | ruby``` works
+#      file: "src={{ scumblr_extra_path }}/ScumblrProviders/shodan.rb dest={{ scumblr_root }}/lib/search_providers/shodan.rb state=link"
+    - file: "src={{ scumblr_extra_path }}/ScumblrProviders/censys.rb dest={{ scumblr_root }}/lib/search_providers/censys.rb state=link"
+    - block:
+        - name: set services API key config - extra
+          lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' line='  {{ item }}' insertafter='config.twitter_access_token_secret'"
+          with_items: "{{ scumblr_extra_config }}"
+          notify:
+            - restart rails sidekiq
+            - restart rails server
+          no_log: True
+      when: scumblr_extra_config is defined and scumblr_extra_config != []
+    - block:
+        - name: adding extra providers (get_url)
+          get_url: "url={{ item }} dest={{ scumblr_extra_path }}/{{ item | basename }} mode=0644"
+          with_items: "{{ scumblr_extra_providers_raw }}"
+      when: scumblr_extra_providers_raw is defined and scumblr_extra_providers_raw != []
+  when: scumblr_extra_providers is defined and scumblr_extra_providers != []
+
+- file: path={{ scriptsdir }} state=directory mode=0755
+- name: add backup script
+  template: src=backup-scumblr.sh.j2 dest={{ scriptsdir }}/backup-scumblr.sh mode=0755
+- name: add restore script
+  template: src=restore-scumblr.sh.j2 dest={{ scriptsdir }}/restore-scumblr.sh mode=0755
+- name: setup cron backup
+  cron: name="scumblr-backup" minute="30" hour="3" weekday="0"
+    job="{{ scriptsdir }}/backup-scumblr.sh > /dev/null 2>&1"
+    user=root
+    cron_file=ansible_scumblr-backup
+
+- stat: "path={{ scumblr_db_restorefile }} checksum_algorithm=sha256"
+  register: restorefile
+- stat: path="{{ backupdir }}/.psql_restore-{{ restorefile.stat.checksum }}"
+  register: restored
+- block:
+    - name: ensure dest backup dir exists
+      file: "dest={{ backupdir }} state=directory mode=0700"
+    - name: push backup file to system
+      copy: "src={{ scumblr_db_restorefile }} dest={{ backupdir }}/{{ scumblr_db_restorefile | basename }} mode=0600"
+    - name: give permissions to postgres user
+      acl: "name={{ item.n }} entity=postgres etype=user permissions={{ item.p }} state=present"
+      with_items:
+        - { n: "{{ backupdir }}/{{ scumblr_db_restorefile | basename }}", p: "r--" }
+        - { n: "{{ backupdir }}", p: "r-x" }
+    - name: restore database
+      command: "{{ item }}"
+      with_items:
+        - "psql --set ON_ERROR_STOP=off -f {{ backupdir }}/{{ scumblr_db_restorefile | basename }} \"{{ scumblr_db_database }}_{{ scumblr_rails_env }}\""
+        - "vacuumdb --dbname=\"{{ scumblr_db_database }}_{{ scumblr_rails_env }}\" --analyze --verbose"
+      become: yes
+      become_user: postgres
+      ignore_errors: true
+    - name: remove permissions to postgres user
+      acl: "name={{ item.n }} entity=postgres etype=user state=absent"
+      with_items:
+        - { n: "{{ backupdir }}/{{ scumblr_db_restorefile | basename }}" }
+        - { n: "{{ backupdir }}" }
+    - name: add restoration marker
+      file: "dest={{ backupdir }}/.psql_restore-{{ restorefile.stat.checksum }} state=touch"
+  when: (scumblr_db_adapter is defined and scumblr_db_adapter == 'postgresql') and scumblr_db_restorefile is defined and scumblr_db_restorefile != '' and not restored.stat.exists
+

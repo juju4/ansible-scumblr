@@ -1,0 +1,17 @@
+---
+
+- name: add web user {{ user }}
+  command: "bash -lc \"echo \\\"user = User.new({{ ':' }}email => '{{ user }}', {{ ':' }}password => '{{ pass }}', {{ ':' }}password_confirmation => '{{ pass }}', {{ ':' }}admin => {{ adminstatus | lower }}); user.save\\\" | rails console\" chdir={{ scumblr_root }}"
+## if fails, use following rails command to get error log
+#user.errors.full_messages
+  environment:
+    RAILS_ENV: '{{ scumblr_rails_env }}'
+  become: yes
+  become_user: "{{ scumblr_rails_user }}"
+  register: railsadduser
+  notify:
+    - restart rails sidekiq
+    - restart rails server
+  when: not "{{ user }}" in userall.stdout
+#- debug: var=railsadduser
+#  no_log: True
