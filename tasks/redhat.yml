@@ -26,6 +26,7 @@
     - ImageMagick-devel
     - acl
     - crontabs
+    - which
 
 - stat: path=/usr/lib/systemd/system/sidekiq.conf
   register: sidekiqinit
