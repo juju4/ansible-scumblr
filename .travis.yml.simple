@@ -5,7 +5,7 @@ python: "2.7"
 before_install:
  - sudo apt-get update -qq
  - sudo apt-get install -qq python-apt python-pycurl
- - ln -s ansible-scumblr ../scumblr
+ - ln -s ansible-scumblr ../juju4.scumblr
  - ./get-dependencies.sh
 ## for local travis execution as we use same travis.yml than kitchen
  - mkdir /tmp/kitchen

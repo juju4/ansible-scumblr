@@ -39,7 +39,7 @@ before_install:
   - env
   - pwd
   - find -ls
-  - ln -s ansible-scumblr ../scumblr
+  - ln -s ansible-scumblr ../juju4.scumblr
   - ./get-dependencies.sh
   - cp test/travis/initctl_faker test/
   # Customize container
