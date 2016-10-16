@@ -3,6 +3,10 @@
 scriptsdir: /usr/local/bin
 backupdir: /var/_backup
 
+scumblr_version: v1.1
+## Not tested
+#scumblr_version: v2.0
+#scumblr_version: HEAD
 ## if setting on a separate user
 scumblr_rails_user: _scumblr
 #scumblr_rails_user: "{{ ansible_ssh_user }}"
@@ -80,3 +84,17 @@ scumblr_extra_providers:
 #  - config.censys_app_id = ''
 #  - config.censys_secret = ''
 
+scumblr_gems:
+    - { p: bundler, v: 1.13.2 }
+#    - { p: devise, v: 3.5.7 }
+    - { p: devise, v: 3.3.0 }
+    - { p: cancan, v: 1.6.10 }
+## latest 4.2.2 but ERROR:  Error installing sidekiq:\n\track requires Ruby version >= 2.2.2.
+    - { p: sidekiq, v: 4.1.4 }
+## note: some gem are listed here as they can fail when called with Scumblr bundle install
+## v1
+#    - { p: json, v: 1.8.1 }
+## v2
+    - { p: json, v: 2.0.2 }
+    - { p: ruby_gntp, v: 0.3.4 }
+    - { p: oj, v: 2.10.1 }

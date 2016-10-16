@@ -82,25 +82,17 @@
   register: gemdep
 - name: install gem dependencies inside rbenv
   command: "bash -lc \"gem install {{ item.p }} -v {{ item.v }}\" chdir={{ scumblr_root }}"
-  with_items:
-    - { p: bundler, v: 1.13.2 }
-#    - { p: devise, v: 3.5.7 }
-    - { p: devise, v: 3.3.0 }
-    - { p: cancan, v: 1.6.10 }
-## latest 4.2.2 but ERROR:  Error installing sidekiq:\n\track requires Ruby version >= 2.2.2.
-    - { p: sidekiq, v: 4.1.4 }
-## note: some gem are listed here as they can fail when called with Scumblr bundle install
-    - { p: json, v: 1.8.1 }
-    - { p: ruby_gntp, v: 0.3.4 }
-    - { p: oj, v: 2.10.1 }
+  with_items: "{{ scumblr_gems }}"
   become: yes
   become_user: "{{ scumblr_rails_user }}"
   when: not gemdep.stat.exists
  
 ## ignore_errors as if repeating, get: msg: Local modifications exist in repository (force=no).
+- debug: var=scumblr_version
 - name: git clone scumblr
   git: repo=https://github.com/Netflix/Scumblr.git
        dest="{{ scumblr_root }}"
+       version="{{ scumblr_version }}"
   ignore_errors: true
   become: yes
   become_user: "{{ scumblr_rails_user }}"
@@ -383,7 +375,7 @@
     - name: ensure extra providers path exists
       file: dest={{ scumblr_extra_path }} state=directory mode=0755
     - name: install extra providers gem dependencies inside rbenv
-      command: "bash -lc \"gem install {{ item.n }} -v {{ item.v }}\" chdir={{ scumblr_root }} creates={{ scumblr_rails_user_home }}/.rbenv/versions/{{ rbenv.ruby_version }}/lib/ruby/gems/{{ rbenv.ruby_version | regex_replace('-[p0-9]*', '') }}/gems/{{ item.n }}-{{ item.v }}"
+      command: "bash -lc \"gem install {{ item.n }} -v {{ item.v }}\" chdir={{ scumblr_root }} creates={{ scumblr_rails_user_home }}/.rbenv/versions/{{ rbenv.ruby_version }}/lib/ruby/gems/{{ rbenv.ruby_version | regex_replace('-[p0-9]*', '') | regex_replace('gems/2.3.1', 'gems/2.3.0') }}/gems/{{ item.n }}-{{ item.v }}"
       with_items: "{{ scumblr_extra_gems }}"
       become: yes
       become_user: "{{ scumblr_rails_user }}"

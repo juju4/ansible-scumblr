@@ -6,6 +6,7 @@ Scumblr is a web application that allows performing periodic searches and storin
 * https://vimeo.com/113447971
 * http://techblog.netflix.com/2014/08/announcing-scumblr-and-sketchy-search.html
 * https://github.com/Netflix/Scumblr
+It's build mostly for v1.1. v2 released oct 2016 had limited testing for now.
 
 ## Requirements & Dependencies
 
@@ -53,6 +54,7 @@ COMPANY security
 COMPANY leak
 COMPANY vulnerability
 COMPANY web mail
+COMPANY torrent
 websites hacked 0wned
 denial of service, ddos
 google news, reddit
@@ -118,6 +120,30 @@ w apache+passenger
 scumblr wiki recommends 2.0 w bundle command
 forced version 3.5.7 against 4.0.0 (both Apr 2016)
 
+* Scumblr v2: install is not functional
+```
+$ curl -sSq http://localhost:3000/
+PG::UndefinedTable at /unauthenticated
+======================================
+
+> ERROR:  relation "sessions" does not exist
+LINE 5:                WHERE a.attrelid = '"sessions"'::regclass
+                                          ^
+
+
+activerecord (4.2.6) lib/active_record/connection_adapters/postgresql_adapter.rb, line 592
+------------------------------------------------------------------------------------------
+
+ruby
+  587             result.clear
+  588             ret
+  589           end
+  590
+  591           def exec_no_cache(sql, name, binds)
+> 592             log(sql, name, binds) { @connection.async_exec(sql, []) }
+  593           end
+
+```
 
 ## License
 
