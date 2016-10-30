@@ -7,7 +7,6 @@ before_install:
  - sudo apt-get install -qq python-apt python-pycurl
  - ln -s ansible-scumblr ../juju4.scumblr
  - ./get-dependencies.sh
-## for local travis execution as we use same travis.yml than kitchen
  - mkdir /tmp/kitchen
  - ln -s /home/travis/build/juju4/ansible-scumblr/test/integration/default/tmp /tmp/kitchen/tmp
 ## serverspec test
@@ -22,10 +21,10 @@ script:
   - "echo \"[test-kitchen]\nlocalhost\" > inventory"
 
 # Check the role/playbook's syntax.
-  - "ansible-playbook -i inventory --syntax-check test/integration/default/travis.yml"
+  - "ansible-playbook -i inventory --syntax-check test/integration/default/default.yml"
 
 # Run the role/playbook with ansible-playbook.
-  - "ansible-playbook -i inventory --connection=local --sudo -vvvv test/integration/default/travis.yml"
+  - "ansible-playbook -i inventory --connection=local --sudo -vvvv test/integration/default/default.yml"
 
 # Run the role/playbook again, checking to make sure it's idempotent.
 ## FIXME! known fail
