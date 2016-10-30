@@ -85,6 +85,9 @@
   with_items: "{{ scumblr_gems }}"
   become: yes
   become_user: "{{ scumblr_rails_user }}"
+## FIXME! v2.2. seems required under travis, http://docs.ansible.com/ansible/become.html
+#  become_flags: "-H"
+  become_method: su
   when: not gemdep.stat.exists
  
 ## ignore_errors as if repeating, get: msg: Local modifications exist in repository (force=no).
