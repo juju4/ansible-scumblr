@@ -27,6 +27,7 @@
     - libcurl3
     - libmagickcore-dev
     - ruby-build
+#    - ruby-dev
     - libmagickwand-dev
     - imagemagick
 #    - bundler

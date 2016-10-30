@@ -32,7 +32,20 @@ suites:
   - name: default
     run_list:
     attributes:
-  - name: postgres
+    includes:
+      - ubuntu-16.04
+      - ubuntu-14.04
+  - name: default-v1
+    run_list:
+    attributes:
+    includes:
+      - ubuntu-16.04
+      - ubuntu-14.04
+      - centos-7
+    provisioner:
+      name: ansible_playbook
+      playbook: test/integration/default-v1/default.yml
+  - name: default-v1-postgres
     run_list:
     attributes:
     includes:
@@ -42,6 +55,6 @@ suites:
 #      - centos-6
     provisioner:
       name: ansible_playbook
-      playbook: test/integration/postgres/default.yml
+      playbook: test/integration/default-v1-postgres/default.yml
 
 

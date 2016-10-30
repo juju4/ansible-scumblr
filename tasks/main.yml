@@ -52,14 +52,14 @@
 ## to ensure default actions are on production server else change on cli
     - 'export RAILS_ENV={{ scumblr_rails_env }}'
 
-- name: install bundler
-  gem: name=bundler state=present
-  become: yes
-  become_user: "{{ scumblr_rails_user }}"
-- name: install rails 4.0.9
-  gem: name=rails version=4.0.9 state=present
-  become: yes
-  become_user: "{{ scumblr_rails_user }}"
+#- name: install bundler
+#  gem: name=bundler state=present
+#  become: yes
+#  become_user: "{{ scumblr_rails_user }}"
+#- name: install rails {{ rails_version }}
+#  gem: name=rails version={{ rails_version }} state=present
+#  become: yes
+#  become_user: "{{ scumblr_rails_user }}"
 
 - file: dest="{{ scumblr_root }}" mode=0755 state=directory owner="{{ scumblr_rails_user }}"
 
@@ -158,14 +158,24 @@
 ## FIXME! done at each execution even if schema already loaded
 - stat: path={{ scumblr_root }}/.ansible_dbschemaload
   register: touchdbschemaload
-- name: rake db:schema:load
-  command: "bash -lc \"bundle exec rake db:schema:load\" chdir={{ scumblr_root }}"
-  environment:
-    RAILS_ENV: '{{ scumblr_rails_env }}'
-  become: yes
-  become_user: "{{ scumblr_rails_user }}"
-  register: dbschemaload
-  when: not touchdbschemaload.stat.exists
+- block:
+    - name: rake db:schema:load
+      command: "bash -lc \"bundle exec rake db:schema:load\" chdir={{ scumblr_root }}"
+      environment:
+        RAILS_ENV: '{{ scumblr_rails_env }}'
+      become: yes
+      become_user: "{{ scumblr_rails_user }}"
+      register: dbschemaload
+  when: not touchdbschemaload.stat.exists and scumblr_version == 'v1.1'
+- block:
+    - name: rake db:structure:load
+      command: "bash -lc \"bundle exec rake db:structure:load\" chdir={{ scumblr_root }}"
+      environment:
+        RAILS_ENV: '{{ scumblr_rails_env }}'
+      become: yes
+      become_user: "{{ scumblr_rails_user }}"
+      register: dbschemaload
+  when: not touchdbschemaload.stat.exists and scumblr_version == 'v2.0'
 - debug: var=dbschemaload
   when: not touchdbschemaload.stat.exists
 - file: dest={{ scumblr_root }}/.ansible_dbschemaload state=touch
@@ -353,8 +363,6 @@
   lineinfile: dest={{ redis_conf }} line='bind 127.0.0.1'
   notify:
     - restart redis
-- name: ensure service are enabled and started
-  service: name={{ redis_svc }} state=started enabled=yes
 
 ## Re run scumblr search every 2 hours?
 - name: define cron task to sync every 2 hours

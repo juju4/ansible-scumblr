@@ -120,30 +120,12 @@ w apache+passenger
 scumblr wiki recommends 2.0 w bundle command
 forced version 3.5.7 against 4.0.0 (both Apr 2016)
 
-* Scumblr v2: install is not functional
-```
-$ curl -sSq http://localhost:3000/
-PG::UndefinedTable at /unauthenticated
-======================================
-
-> ERROR:  relation "sessions" does not exist
-LINE 5:                WHERE a.attrelid = '"sessions"'::regclass
-                                          ^
-
-
-activerecord (4.2.6) lib/active_record/connection_adapters/postgresql_adapter.rb, line 592
-------------------------------------------------------------------------------------------
-
-ruby
-  587             result.clear
-  588             ret
-  589           end
-  590
-  591           def exec_no_cache(sql, name, binds)
-> 592             log(sql, name, binds) { @connection.async_exec(sql, []) }
-  593           end
-
-```
+* Scumblr v2 requires postgresql 9.4+ which is available in upstream packages only in Ubuntu Xenial.
+Trusty is 9.3 and Centos7 is 9.2.
+Possible alternative (supported with geerlingguy.postgresql role)
+https://wiki.postgresql.org/wiki/Apt
+https://yum.postgresql.org/repopackages.php
+v1 can be used on most distribution either with sqlite or postgresql
 
 ## License
 

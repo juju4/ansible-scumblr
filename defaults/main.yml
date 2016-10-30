@@ -3,10 +3,13 @@
 scriptsdir: /usr/local/bin
 backupdir: /var/_backup
 
-scumblr_version: v1.1
+#scumblr_version: v1.1
+#rails_version: 4.0.9
 ## Not tested
-#scumblr_version: v2.0
+scumblr_version: v2.0
 #scumblr_version: HEAD
+rails_version: 4.2.6
+
 ## if setting on a separate user
 scumblr_rails_user: _scumblr
 #scumblr_rails_user: "{{ ansible_ssh_user }}"
@@ -16,7 +19,7 @@ scumblr_rails_user_home: "/home/{{ scumblr_rails_user }}"
 scumblr_root: /var/Scumblr
 scumblr_rails_env: development
 #scumblr_rails_env: production
-## config/database.yml
+## config/database.yml: sqlite3 is valid only for Scumblr v1
 #scumblr_db_adapter: sqlite3
 ## a lot more performant...
 scumblr_db_adapter: postgresql
@@ -86,6 +89,7 @@ scumblr_extra_providers:
 
 scumblr_gems:
     - { p: bundler, v: 1.13.2 }
+    - { p: rails, v: "{{ rails_version }}" }
 #    - { p: devise, v: 3.5.7 }
     - { p: devise, v: 3.3.0 }
     - { p: cancan, v: 1.6.10 }
