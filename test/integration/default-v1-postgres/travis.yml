@@ -13,6 +13,6 @@
     - rbenv_users:
         - "{{ scumblr_rails_user }}"
   roles:
-    - sketchy
-    - scumblr
+    - juju4.sketchy
+    - juju4.scumblr
 

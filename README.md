@@ -14,6 +14,7 @@ It's build mostly for v1.1. v2 released oct 2016 had limited testing for now.
 It was tested on the following versions:
  * 1.9
  * 2.0
+ * 2.2
 
 ### Operating systems
 
@@ -37,7 +38,7 @@ For example
     - scumblr
 ```
 
-And connect at the end on http://IP:3000
+And connect at the end on http://IP:8080
 Rails server is in development mode by default. Please check known issues.
 
 To finish integration, you should

@@ -27,6 +27,7 @@
     - acl
     - crontabs
     - which
+    - nginx
 
 - stat: path=/usr/lib/systemd/system/sidekiq.conf
   register: sidekiqinit
@@ -45,4 +46,6 @@
   notify:
     - restart rails sidekiq
     - restart rails server
+    - restart sidekiq - systemd
+    - restart rails/scumblr - systemd
 

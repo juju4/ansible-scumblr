@@ -34,6 +34,7 @@
     - redis-server
     - acl
     - debianutils
+    - nginx
   register: deps
 #- debug: var=deps
 
@@ -69,5 +70,7 @@
       notify:
         - restart rails sidekiq
         - restart rails server
+        - restart sidekiq - systemd
+        - restart rails/scumblr - systemd
   when: ansible_distribution_release == 'trusty'
 

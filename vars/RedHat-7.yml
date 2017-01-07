@@ -12,3 +12,6 @@ postgres_pkg:
     - postgresql-contrib
 ## https://docs.ansible.com/ansible/become.html#becoming-an-unprivileged-user
     - acl
+
+nginx_confdir: /etc/nginx/conf.d
+

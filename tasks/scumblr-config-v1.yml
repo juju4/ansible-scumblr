@@ -1,0 +1,27 @@
+---
+
+## or move to a template?
+- include: "scumblr-config-key.yml key={{ item }}"
+  with_items:
+    - { key: "{{ scumblr_facebook_app_id }}", re: "^  #config.facebook_app_id = ''", rep: "  config.facebook_app_id = '{{ scumblr_facebook_app_id }}'" }
+    - { key: "{{ scumblr_facebook_app_secret }}", re: "^  #config.facebook_app_secret = ''", rep: "  config.facebook_app_secret = '{{ scumblr_facebook_app_secret }}'" }
+
+- include: "scumblr-config-key-insert.yml key={{ item }}"
+  with_items:
+    - { key: "{{ scumblr_google_developer_key }}", re: "^  config.google_developer_key = .*", rep: "  config.google_developer_key = '{{ scumblr_google_developer_key }}'", in: '#config.google_application_version' }
+    - { key: "{{ scumblr_google_cx }}", re: "^  config.google_cx = .*", rep: "  config.google_cx = '{{ scumblr_google_cx }}'", in: '#config.google_application_version' }
+    - { key: "{{ scumblr_google_application_name }}", re: "^  config.google_application_name = .*", rep: "  config.google_application_name = '{{ scumblr_google_application_name }}'", in: '#config.google_application_version' }
+    - { key: "{{ scumblr_google_application_version }}", re: "^  config.google_application_version = .*", rep: "  config.google_application_version = '{{ scumblr_google_application_version }}'", in: '#config.google_application_version' }
+    - { key: "{{ scumblr_youtube_developer_key }}", re: "^  config.youtube_developer_key = .*", rep: "  config.youtube_developer_key = '{{ scumblr_youtube_developer_key }}'", in: '#config.youtube_developer_key' }
+    - { key: "{{ scumblr_youtube_application_name }}", re: "^  config.youtube_application_name = .*", rep: "  config.youtube_application_name = '{{ scumblr_youtube_application_name }}'", in: '#config.youtube_application_name' }
+    - { key: "{{ scumblr_youtube_application_version }}", re: "^  config.youtube_application_version = .*", rep: "  config.youtube_application_version = '{{ scumblr_youtube_application_version }}'", in: '#config.youtube_application_version' }
+    - { key: "{{ scumblr_twitter_consumer_key }}", re: "^  config.twitter_consumer_key = .*", rep: "  config.twitter_consumer_key = '{{ scumblr_twitter_consumer_key }}'", in: '#config.twitter_consumer_key' }
+    - { key: "{{ scumblr_twitter_consumer_secret }}", re: "^  config.twitter_consumer_secret = .*", rep: "  config.twitter_consumer_secret = '{{ scumblr_twitter_consumer_secret }}'", in: '#config.twitter_consumer_secret' }
+    - { key: "{{ scumblr_twitter_access_token }}", re: "^  config.twitter_access_token = .*", rep: "  config.twitter_access_token = '{{ scumblr_twitter_access_token }}'", in: '#config.twitter_access_token' }
+    - { key: "{{ scumblr_twitter_access_token_secret }}", re: "^  config.twitter_access_token_secret = .*", rep: "  config.twitter_access_token_secret = '{{ scumblr_twitter_access_token_secret }}'", in: '#config.twitter_access_token_secret' }
+    - { key: "{{ scumblr_sketchy_url }}", re: "^  config.scumblr_sketchy_url = .*", rep: "  config.scumblr_sketchy_url = '{{ scumblr_sketchy_url }}'", in: '# config.sketchy_access_token' }
+    - { key: "{{ scumblr_sketchy_use_ssl }}", re: "^  config.scumblr_sketchy_use_ssl = .*", rep: "  config.scumblr_sketchy_use_ssl = '{{ scumblr_sketchy_use_ssl }}'", in: '# config.sketchy_access_token' }
+    - { key: "{{ scumblr_sketchy_verify_ssl }}", re: "^  config.scumblr_sketchy_verify_ssl = .*", rep: "  config.scumblr_sketchy_verify_ssl = '{{ scumblr_sketchy_verify_ssl }}'", in: '# config.sketchy_access_token' }
+    - { key: "{{ scumblr_sketchy_tag_status_code }}", re: "^  config.scumblr_sketchy_tag_status_code = .*", rep: "  config.scumblr_sketchy_tag_status_code = '{{ scumblr_sketchy_tag_status_code }}'", in: '# config.sketchy_access_token' }
+    - { key: "{{ scumblr_sketchy_access_token }}", re: "^  config.scumblr_sketchy_access_token = .*", rep: "  config.scumblr_sketchy_access_token = '{{ scumblr_sketchy_access_token }}'", in: '# config.sketchy_access_token' }
+

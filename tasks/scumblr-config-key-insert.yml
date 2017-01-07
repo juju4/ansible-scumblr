@@ -1,0 +1,16 @@
+---
+
+- name: insert services API key config - {{ key.re }}
+  lineinfile:
+    dest: "{{ scumblr_root }}/config/initializers/scumblr.rb"
+    regexp: "{{ key.re }}"
+    line: "{{ key.rep }}"
+    insertafter: "{{ key.in }}"
+  when: key.key != ""
+  notify:
+    - restart rails sidekiq
+    - restart rails server
+    - restart sidekiq - systemd
+    - restart rails/scumblr - systemd
+#  no_log: true
+

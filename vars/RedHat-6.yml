@@ -5,3 +5,5 @@ redis_svc: redis
 redis_conf: /etc/redis.conf
 supervisor_svc: supervisord
 
+nginx_confdir: /etc/nginx/conf.d
+

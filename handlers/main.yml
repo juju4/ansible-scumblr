@@ -7,6 +7,7 @@
     RAILS_ENV: '{{ scumblr_rails_env }}'
   become: yes
   become_user: "{{ scumblr_rails_user }}"
+  when: ansible_service_mgr is not defined or ansible_service_mgr != 'systemd'
 
 - name: restart rails server
 #  service: name=scumblr state=restarted
@@ -15,10 +16,22 @@
     RAILS_ENV: '{{ scumblr_rails_env }}'
   become: yes
   become_user: "{{ scumblr_rails_user }}"
+  when: ansible_service_mgr is not defined or ansible_service_mgr != 'systemd'
+
+- name: restart sidekiq - systemd
+  service: name=sidekiq state=restarted
+  when: ansible_system == "Linux" and ansible_service_mgr == 'systemd'
+
+- name: restart rails/scumblr - systemd
+  service: name=scumblr state=restarted
+  when: ansible_system == "Linux" and ansible_service_mgr == 'systemd'
 
 - name: restart redis
   service: name={{ redis_svc }} state=restarted
 
 - name: restart postgres
   service: name=postgresql state=restarted
+
+- name: restart nginx
+  service: name=nginx state=restarted
 

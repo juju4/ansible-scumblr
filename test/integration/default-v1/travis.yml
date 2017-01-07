@@ -17,6 +17,6 @@
         - "{{ scumblr_rails_user }}"
   roles:
     - { role: adduser, adduser_user_name: _scumblr, adduser_user_home: '/home/_scumblr', adduser_user_comments: 'Scumblr rails app user', adduser_public_keys: [], adduser_sudoroot: false }
-    - sketchy
-    - scumblr
+    - juju4.sketchy
+    - juju4.scumblr
 

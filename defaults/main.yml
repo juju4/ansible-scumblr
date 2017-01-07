@@ -16,6 +16,10 @@ scumblr_rails_user: _scumblr
 #scumblr_rails_user: scumblr
 scumblr_rails_user_home: "/home/{{ scumblr_rails_user }}"
 
+## default app is only localhost:3000. if sketchy is installed on same box, using localhost:443 by default
+#scumblr_nginx_listen: localhost:8080
+scumblr_nginx_listen: 8080
+
 scumblr_root: /var/Scumblr
 scumblr_rails_env: development
 #scumblr_rails_env: production
@@ -35,35 +39,35 @@ postgresql_users:
   - name: "{{ scumblr_db_user }}"
     password: "{{ scumblr_db_pass }}"
     db: "{{ scumblr_db_database }}_{{ scumblr_rails_env }}"
+scumblr_db_restorefile: ''
 #scumblr_db_restorefile: "backup.sql"
 
-## Note: this user insertion will fail as this email is seen as invalid by rails.
-scumblr_rails_webuser: root@localhost
-scumblr_rails_webpass: root@localhost
-## TODO
 scumblr_web_users:
   - { user: root@localhost.local, pass: root@localhost, admin: true }
   - { user: user1@localhost.local, pass: user1@localhost, admin: false }
 
 ## API key
-#scumblr_sketchy_url: http://localhost:80/api/v1.0/capture
-#scumblr_sketchy_use_ssl: false
-#scumblr_sketchy_verify_ssl: true
-#scumblr_sketchy_tag_status_code: true
-#scumblr_sketchy_access_token:
-#scumblr_facebook_app_id:
-#scumblr_facebook_app_secret:
-#scumblr_google_developer_key:
-#scumblr_google_cx:
-#scumblr_google_application_name: Scumblr
-#scumblr_google_application_version: 1.0
-#scumblr_youtube_developer_key:
-#scumblr_youtube_application_name: "{{ scumblr_google_application_name }}"
-#scumblr_youtube_application_version: "{{ scumblr_google_application_version }}"
-#scumblr_twitter_consumer_key:
-#scumblr_twitter_consumer_secret:
-#scumblr_twitter_access_token:
-#scumblr_twitter_access_token_secret:
+#scumblr_sketchy_url: ''
+scumblr_sketchy_url: http://localhost:8000/api/v1.0/capture
+scumblr_sketchy_use_ssl: false
+scumblr_sketchy_verify_ssl: true
+scumblr_sketchy_tag_status_code: true
+scumblr_sketchy_access_token:
+scumblr_facebook_app_id: ''
+scumblr_facebook_app_secret: ''
+scumblr_google_developer_key: ''
+scumblr_google_cx: ''
+scumblr_google_application_name: Scumblr
+scumblr_google_application_version: 1.0
+scumblr_youtube_developer_key: ''
+scumblr_youtube_application_name: "{{ scumblr_google_application_name }}"
+scumblr_youtube_application_version: "{{ scumblr_google_application_version }}"
+scumblr_twitter_consumer_key: ''
+scumblr_twitter_consumer_secret: ''
+scumblr_twitter_access_token: ''
+scumblr_twitter_access_token_secret: ''
+scumblr_github_oauth_token: ''
+scumblr_opengrok_url: ''
 
 scumblr_cron_rakesync: false
 
@@ -80,8 +84,10 @@ scumblr_extra_providers:
       - censys.rb
       - shodan.rb
 ## https://mig5.net/content/monitoring-certificate-transparency-logs-fraudulent-ssl-certs-scumblr = merged
+scumblr_extra_providers_raw: []
 #scumblr_extra_providers_raw:
 #  - 'https://raw.githubusercontent.com/mig5/Scumblr/certificate_transparency_provider/lib/search_providers/ct.rb'
+scumblr_extra_config: []
 #scumblr_extra_config:
 #  - config.shodan_api_key = ''
 #  - config.censys_app_id = ''

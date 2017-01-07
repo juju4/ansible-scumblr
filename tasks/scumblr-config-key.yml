@@ -1,0 +1,15 @@
+---
+
+- name: set services API key config - {{ key.re }}
+  replace:
+    dest: "{{ scumblr_root }}/config/initializers/scumblr.rb"
+    regexp: "{{ key.re }}"
+    replace: "{{ key.rep }}"
+  when: key.key != ""
+  notify:
+    - restart rails sidekiq
+    - restart rails server
+    - restart sidekiq - systemd
+    - restart rails/scumblr - systemd
+#  no_log: true
+

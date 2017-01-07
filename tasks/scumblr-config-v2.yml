@@ -1,0 +1,39 @@
+---
+## v2: config can be done in scumblr.rb but by default goes into shell environment
+
+## or move to a template?
+- name: v2 | add scumblr config in scumblr bashrc
+  lineinfile:
+    dest: "{{ scumblr_rails_user_home }}/.bashrc"
+    regexp: "{{ item.re }}"
+    line: "{{ item.rep }}"
+## https://stackoverflow.com/questions/25335143/bashrc-environment-variables-not-working-with-rails-app
+    insertafter: '^# for examples'
+  with_items:
+    - { re: "^export facebook_app_id=''", rep: "export facebook_app_id='{{ scumblr_facebook_app_id }}'" }
+    - { re: "^export facebook_app_secret=''", rep: "export facebook_app_secret='{{ scumblr_facebook_app_secret }}'" }
+    - { re: "^export google_developer_key=.*", rep: "export google_developer_key='{{ scumblr_google_developer_key }}'" }
+    - { re: "^export google_cx=.*", rep: "export google_cx='{{ scumblr_google_cx }}'" }
+    - { re: "^export google_application_name=.*", rep: "export google_application_name='{{ scumblr_google_application_name }}'" }
+    - { re: "^export google_application_version=.*", rep: "export google_application_version='{{ scumblr_google_application_version }}'" }
+    - { re: "^export youtube_developer_key=.*", rep: "export youtube_developer_key='{{ scumblr_youtube_developer_key }}'" }
+    - { re: "^export youtube_application_name=.*", rep: "export youtube_application_name='{{ scumblr_youtube_application_name }}'" }
+    - { re: "^export youtube_application_version=.*", rep: "export youtube_application_version='{{ scumblr_youtube_application_version }}'" }
+    - { re: "^export twitter_consumer_key=.*", rep: "export twitter_consumer_key='{{ scumblr_twitter_consumer_key }}'" }
+    - { re: "^export twitter_consumer_secret=.*", rep: "export twitter_consumer_secret='{{ scumblr_twitter_consumer_secret }}'" }
+    - { re: "^export twitter_access_token=.*", rep: "export twitter_access_token='{{ scumblr_twitter_access_token }}'" }
+    - { re: "^export twitter_access_token_secret=.*", rep: "export twitter_access_token_secret='{{ scumblr_twitter_access_token_secret }}'" }
+    - { re: "^export sketchy_url=.*", rep: "export sketchy_url='{{ scumblr_sketchy_url }}'" }
+    - { re: "^export sketchy_use_ssl=.*", rep: "export sketchy_use_ssl='{{ scumblr_sketchy_use_ssl }}'" }
+    - { re: "^export sketchy_verify_ssl=.*", rep: "export sketchy_verify_ssl='{{ scumblr_sketchy_verify_ssl }}'" }
+    - { re: "^export sketchy_tag_status_code=.*", rep: "export sketchy_tag_status_code='{{ scumblr_sketchy_tag_status_code }}'" }
+    - { re: "^export sketchy_access_token=.*", rep: "export sketchy_access_token='{{ scumblr_sketchy_access_token }}'" }
+    - { re: "^export github_oauth_token=.*", rep: "export github_oauth_token='{{ scumblr_github_oauth_token }}'" }
+    - { re: "^export opengrok_url=.*", rep: "export opengrok_url='{{ scumblr_opengrok_url }}'" }
+  notify:
+    - restart rails sidekiq
+    - restart rails server
+    - restart sidekiq - systemd
+    - restart rails/scumblr - systemd
+#  no_log: true
+

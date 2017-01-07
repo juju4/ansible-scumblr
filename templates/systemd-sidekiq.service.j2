@@ -1,3 +1,5 @@
+## https://github.com/gitlabhq/gitlab-recipes/blob/master/init/systemd/gitlab-sidekiq.service
+## https://github.com/mperham/sidekiq/blob/master/examples/systemd/sidekiq.service
 [Unit]
 Description=Sidekiq
 Requires=redis.service
@@ -5,15 +7,24 @@ Wants=mysqld.service postgresql.service
 After=redis.service mysqld.service postgresql.service
  
 [Service]
+## no daemon mode
 Type=simple
+## daemon mode
+#Type=forking
 User={{ scumblr_rails_user }}
 Group={{ scumblr_rails_user }}
 WorkingDirectory={{ scumblr_root }}
-ExecStart=/usr/bin/bash -lc 'bundle exec sidekiq -d -l {{ scumblr_root }}/log/sidekiq.log -e {{ scumblr_rails_env }} -r {{ scumblr_root }} -P -P {{ scumblr_root }}/tmp/pids/sidekiq.pid'
+ExecStart=/bin/bash -lc 'bundle exec sidekiq -l {{ scumblr_root }}/log/sidekiq.log -e {{ scumblr_rails_env }} -r {{ scumblr_root }} -P {{ scumblr_root }}/tmp/pids/sidekiq.pid'
+#ExecStart=/bin/bash -lc 'bundle exec sidekiq -d -l {{ scumblr_root }}/log/sidekiq.log -e {{ scumblr_rails_env }} -r {{ scumblr_root }} -P {{ scumblr_root }}/tmp/pids/sidekiq.pid'
+ExecStop=/bin/bash -lc 'bundle exec "sidekiqctl stop {{ scumblr_root }}/tmp/pids/sidekiq.pid >> {{ scumblr_root }}/log/sidekiq.log 2>&1"'
+PIDFile={{ scumblr_root }}/tmp/pids/sidekiq.pid
+UMask=0022
 TimeoutSec=30
 RestartSec=15s
-Restart=always
-PIDFile={{ scumblr_root }}/tmp/pids/sidekiq.pid
+#Restart=always
+Restart=on-failure
+Environment="RAILS_ENV={{ scumblr_rails_env }}"
+SyslogIdentifier=sidekiq
  
 [Install]
 WantedBy=multi-user.target

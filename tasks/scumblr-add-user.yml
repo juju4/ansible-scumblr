@@ -12,6 +12,8 @@
   notify:
     - restart rails sidekiq
     - restart rails server
+    - restart sidekiq - systemd
+    - restart rails/scumblr - systemd
   when: not "{{ user }}" in userall.stdout
 #- debug: var=railsadduser
 #  no_log: True

@@ -126,6 +126,19 @@
 #  become: yes
 #  become_user: "{{ scumblr_rails_user }}"
 
+## FIXME! travis/trusty: FAILED! => {"changed": true, "cmd": ["bash", "-lc", "bundle install"], "delta": "0:00:00.225054", "end": "2016-10-30 20:24:08.031412", "failed": true, "invocation": {"module_args": {"_raw_params": "bash -lc \"bundle install\"", "_uses_shell": false, "chdir": "/var/Scumblr", "creates": null, "executable": null, "removes": null, "warn": true}, "module_name": "command"}, "rc": 1, "start": "2016-10-30 20:24:07.806358", "stderr": "/home/_scumblr/.rbenv/versions/2.3.1/lib/ruby/2.3.0/rubygems/dependency.rb:319:in `to_specs': Could not find 'bundler' (>= 0.a) among 6 total gem(s) (Gem::LoadError)\nChecked in 'GEM_PATH=/home/travis/.rvm/gems/ruby-2.3.1:/home/travis/.rvm/gems/ruby-2.3.1@global:/home/_scumblr/.rbenv/plugins/rbenv-rehash', execute `gem env` for more information\n\tfrom /home/_scumblr/.rbenv/versions/2.3.1/lib/ruby/2.3.0/rubygems/dependency.rb:328:in `to_spec'\n\tfrom /home/_scumblr/.rbenv/versions/2.3.1/lib/ruby/2.3.0/rubygems/core_ext/kernel_gem.rb:65:in `gem'\n\tfrom /home/_scumblr/.rbenv/versions/2.3.1/bin/bundle:22:in `<main>'", "stdout": "", "stdout_lines": [], "warnings": []}
+- name: debug
+  command: "{{ item }}"
+  with_items:
+#    - "bash -lc \"bundle install\" chdir={{ scumblr_root }}"
+#    - "bash -lc \"bundle check\" chdir={{ scumblr_root }}"
+    - "bash -lc \"gem list\" chdir={{ scumblr_root }}"
+    - "bash -lc \"gem env\" chdir={{ scumblr_root }}"
+  register: d
+  changed_when: false
+  become: yes
+  become_user: "{{ scumblr_rails_user }}"
+- debug: var=d
 ## bundler v2 OR https://github.com/drewda/ansible-rails
 ## FIXME! vagrant stalled on this task
 ## Note: kitchen works with both command, travis only with bash -lc...
@@ -203,6 +216,8 @@
   notify:
     - restart rails sidekiq
     - restart rails server
+    - restart sidekiq - systemd
+    - restart rails/scumblr - systemd
   no_log: True
 
 - name: generate a rake secret 2
@@ -221,6 +236,8 @@
   notify:
     - restart rails sidekiq
     - restart rails server
+    - restart sidekiq - systemd
+    - restart rails/scumblr - systemd
   no_log: True
 - name: add config to devise.rb
   lineinfile: dest="{{ scumblr_root }}/config/initializers/devise.rb" line={{ item.l }} insertafter={{ item.i }}
@@ -228,6 +245,28 @@
   notify:
     - restart rails sidekiq
     - restart rails server
+    - restart sidekiq - systemd
+    - restart rails/scumblr - systemd
+
+- stat: path="{{ scumblr_root }}/config/initializers/scumblr.rb"
+  register: conf
+- name: create services API key config
+  command: "rsync -ci {{ scumblr_root }}/config/initializers/scumblr.rb.sample {{ scumblr_root }}/config/initializers/scumblr.rb"
+  become: yes
+  become_user: "{{ scumblr_rails_user }}"
+  register: rsync_result
+  changed_when: 'rsync_result.stdout != ""'
+  when: not conf.stat.exists
+  notify:
+    - restart rails sidekiq
+    - restart rails server
+    - restart sidekiq - systemd
+    - restart rails/scumblr - systemd
+
+- include: scumblr-config-v1.yml
+  when: scumblr_version == 'v1.1'
+- include: scumblr-config-v2.yml
+  when: scumblr_version == 'v2.0'
 
 - name: check existing rails users
   command: "bash -lc \"echo \\\"User.all\\\" | rails console\" chdir={{ scumblr_root }}"
@@ -242,128 +281,6 @@
   include: "scumblr-add-user.yml user={{ item.user }} pass={{ item.pass }} adminstatus={{ item.admin }}"
   with_items: "{{ scumblr_web_users }}"
 
-- stat: path="{{ scumblr_root }}/config/initializers/scumblr.rb"
-  register: conf
-- name: create services API key config
-  command: "rsync -ci {{ scumblr_root }}/config/initializers/scumblr.rb.sample {{ scumblr_root }}/config/initializers/scumblr.rb"
-  become: yes
-  become_user: "{{ scumblr_rails_user }}"
-  register: rsync_result
-  changed_when: 'rsync_result.stdout != ""'
-  when: not conf.stat.exists
-  notify:
-    - restart rails sidekiq
-    - restart rails server
-
-- name: set services API key config - facebook_app_id
-  replace: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  #config.facebook_app_id = \'\'' replace='  config.facebook_app_id = \'{{ scumblr_facebook_app_id }}\''"
-  when: scumblr_facebook_app_id is defined and scumblr_facebook_app_id != ""
-  notify:
-    - restart rails sidekiq
-    - restart rails server
-- name: set services API key config - facebook_app_secret
-  replace: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  #config.facebook_app_secret = \'\'' replace='  config.facebook_app_secret = \'{{ scumblr_facebook_app_secret }}\''"
-  when: scumblr_facebook_app_secret is defined and scumblr_facebook_app_secret != ""
-  notify:
-    - restart rails sidekiq
-    - restart rails server
-- name: set services API key config - google_developer_key
-  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.google_developer_key = .*' line='  config.google_developer_key = \'{{ scumblr_google_developer_key }}\'' insertafter='#config.google_application_version'"
-  when: scumblr_google_developer_key is defined and scumblr_google_developer_key != ""
-  notify:
-    - restart rails sidekiq
-    - restart rails server
-- name: set services API key config - google_cx
-  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.google_cx = .*' line='  config.google_cx = \'{{ scumblr_google_cx }}\'' insertafter='#config.google_application_version'"
-  when: scumblr_google_cx is defined and scumblr_google_cx != ""
-  notify:
-    - restart rails sidekiq
-    - restart rails server
-- name: set services API key config - google_application_name
-  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.google_application_name = .*' line='  config.google_application_name = \'{{ scumblr_google_application_name }}\'' insertafter='#config.google_application_version'"
-  when: scumblr_google_application_name is defined and scumblr_google_application_name != ""
-  notify:
-    - restart rails sidekiq
-    - restart rails server
-- name: set services API key config - google_application_version
-  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.google_application_version = .*' line='  config.google_application_version = \'{{ scumblr_google_application_version }}\'' insertafter='#config.google_application_version'"
-  when: scumblr_google_application_version is defined and scumblr_google_application_version != ""
-  notify:
-    - restart rails sidekiq
-    - restart rails server
-- name: set services API key config - youtube_developer_key
-  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.youtube_developer_key = .*' line='  config.youtube_developer_key = \'{{ scumblr_youtube_developer_key }}\'' insertafter='#config.youtube_developer_key'"
-  when: scumblr_youtube_developer_key is defined and scumblr_youtube_developer_key != ""
-  notify:
-    - restart rails sidekiq
-    - restart rails server
-- name: set services API key config - youtube_application_name
-  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.youtube_application_name = .*' line='  config.youtube_application_name = \'{{ scumblr_youtube_application_name }}\'' insertafter='#config.youtube_application_name'"
-  when: scumblr_youtube_application_name is defined and scumblr_youtube_application_name != ""
-  notify:
-    - restart rails sidekiq
-    - restart rails server
-- name: set services API key config - youtube_application_version
-  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.youtube_application_version = .*' line='  config.youtube_application_version = \'{{ scumblr_youtube_application_version }}\'' insertafter='#config.youtube_application_version'"
-  when: scumblr_youtube_application_version is defined and scumblr_youtube_application_version != ""
-  notify:
-    - restart rails sidekiq
-    - restart rails server
-- name: set services API key config - twitter_consumer_key
-  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.twitter_consumer_key = .*' line='  config.twitter_consumer_key = \'{{ scumblr_twitter_consumer_key }}\'' insertafter='#config.twitter_consumer_key'"
-  when: scumblr_twitter_consumer_key is defined and scumblr_twitter_consumer_key != ""
-  notify:
-    - restart rails sidekiq
-    - restart rails server
-- name: set services API key config - twitter_consumer_secret
-  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.twitter_consumer_secret = .*' line='  config.twitter_consumer_secret = \'{{ scumblr_twitter_consumer_secret }}\'' insertafter='#config.twitter_consumer_secret'"
-  when: scumblr_twitter_consumer_secret is defined and scumblr_twitter_consumer_secret != ""
-  notify:
-    - restart rails sidekiq
-    - restart rails server
-- name: set services API key config - twitter_access_token
-  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.twitter_access_token = .*' line='  config.twitter_access_token = \'{{ scumblr_twitter_access_token }}\'' insertafter='#config.twitter_access_token'"
-  when: scumblr_twitter_access_token is defined and scumblr_twitter_access_token != ""
-  notify:
-    - restart rails sidekiq
-    - restart rails server
-- name: set services API key config - twitter_access_token_secret
-  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.twitter_access_token_secret = .*' line='  config.twitter_access_token_secret = \'{{ scumblr_twitter_access_token_secret }}\'' insertafter='#config.twitter_access_token_secret'"
-  when: scumblr_twitter_access_token_secret is defined and scumblr_twitter_access_token_secret != ""
-  notify:
-    - restart rails sidekiq
-    - restart rails server
-- name: set services API key config - sketchy_url
-  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.sketchy_url = .*' line='  config.sketchy_url = \'{{ scumblr_sketchy_url }}\'' insertafter='# config.sketchy_access_token'"
-  when: scumblr_sketchy_url is defined and scumblr_sketchy_url != ""
-  notify:
-    - restart rails sidekiq
-    - restart rails server
-- name: set services API key config - sketchy_use_ssl
-  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.sketchy_use_ssl = .*' line='  config.sketchy_use_ssl = \'{{ scumblr_sketchy_use_ssl }}\'' insertafter='# config.sketchy_access_token'"
-  when: scumblr_sketchy_use_ssl is defined and scumblr_sketchy_use_ssl != ""
-  notify:
-    - restart rails sidekiq
-    - restart rails server
-- name: set services API key config - sketchy_verify_ssl
-  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.sketchy_verify_ssl = .*' line='  config.sketchy_verify_ssl = \'{{ scumblr_sketchy_verify_ssl }}\'' insertafter='# config.sketchy_access_token'"
-  when: scumblr_sketchy_verify_ssl is defined and scumblr_sketchy_verify_ssl != ""
-  notify:
-    - restart rails sidekiq
-    - restart rails server
-- name: set services API key config - sketchy_tag_status_code
-  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.sketchy_tag_status_code = .*' line='  config.sketchy_tag_status_code = \'{{ scumblr_sketchy_tag_status_code }}\'' insertafter='# config.sketchy_access_token'"
-  when: scumblr_sketchy_tag_status_code is defined and scumblr_sketchy_tag_status_code != ""
-  notify:
-    - restart rails sidekiq
-    - restart rails server
-- name: set services API key config - sketchy_access_token
-  lineinfile: "dest='{{ scumblr_root }}/config/initializers/scumblr.rb' regexp='^  config.sketchy_access_token = .*' line='  config.sketchy_access_token = \'{{ scumblr_sketchy_access_token }}\'' insertafter='# config.sketchy_access_token'"
-  when: scumblr_sketchy_access_token is defined and scumblr_sketchy_access_token != ""
-  notify:
-    - restart rails sidekiq
-    - restart rails server
-
 - name: ensure redis is bind to localhost
   lineinfile: dest={{ redis_conf }} line='bind 127.0.0.1'
   notify:
@@ -376,13 +293,22 @@
         cron_file=ansible_yum-autoupdate
   when: scumblr_cron_rakesync is defined and scumblr_cron_rakesync
 
-## FIXME! not working
 - name: configure systemd for sidekiq and rails service
   template: "src=systemd-{{ item }} dest=/lib/systemd/system/{{ item | basename | regex_replace('.j2$', '') }} backup=yes"
   with_items:
     - sidekiq.service.j2
     - scumblr.service.j2
   when: ansible_system == "Linux" and ansible_service_mgr == 'systemd'
+
+- name: configure nginx for scumblr
+  template: src=nginx-scumblr.conf.j2 dest="{{ nginx_confdir }}/scumblr.conf" mode=0644
+  notify:
+    - restart nginx
+- name: enable scumblr nginx
+  file: "src={{ nginx_confdir }}/scumblr.conf dest=/etc/nginx/sites-enabled/scumblr.conf state=link"
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+  notify:
+    - restart nginx
 
 - block:
     - name: ensure extra providers path exists
@@ -411,6 +337,8 @@
           notify:
             - restart rails sidekiq
             - restart rails server
+            - restart sidekiq - systemd
+            - restart rails/scumblr - systemd
           no_log: True
       when: scumblr_extra_config is defined and scumblr_extra_config != []
     - block:
@@ -463,4 +391,24 @@
     - name: add restoration marker
       file: "dest={{ backupdir }}/.psql_restore-{{ restorefile.stat.checksum }} state=touch"
   when: (scumblr_db_adapter is defined and scumblr_db_adapter == 'postgresql') and scumblr_db_restorefile is defined and scumblr_db_restorefile != '' and not restored.stat.exists
+
+- name: ensure systemd services for sidekiq and rails/scumblr are enabled and started
+  service: name={{ item }} state=started enabled=yes
+  with_items:
+    - sidekiq
+    - scumblr
+  when: ansible_system == "Linux" and ansible_service_mgr == 'systemd'
+
+- meta: flush_handlers
+- name: ensure service is up before ending
+## does not support http request
+#  wait_for: host=127.0.0.1 port=3000 timeout=30 search_regex='<body>You are being'
+  shell: "curl -D - --silent --max-time 5 http://localhost:3000"
+  register: result
+  until: (result.stdout.find("302 Found") != -1) and (result.stdout.find("<body>You are being") != -1)
+  retries: 10
+  delay: 3
+  changed_when: false
+  ignore_errors: true
+
 

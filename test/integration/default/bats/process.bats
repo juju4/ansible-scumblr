@@ -23,7 +23,8 @@ setup() {
 }
 
 @test "process rails master should be running" {
-    run pgrep -f "rails master"
+#    run pgrep -f "rails master"
+    run pgrep -f "rails"
     [ "$status" -eq 0 ]
     [[ "$output" != "" ]]
 }

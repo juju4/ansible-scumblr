@@ -11,3 +11,5 @@ postgres_pkg:
     - acl
     - postgresql-9.3
 
+nginx_confdir: /etc/nginx/sites-available
+
