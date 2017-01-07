@@ -39,6 +39,12 @@
     - postgresql_bin_path: "/usr/lib/postgresql/{{ __postgresql_version }}/bin"
     - postgresql_config_path: "/etc/postgresql/{{ __postgresql_version }}/main"
     - postgresql_daemon: postgresql
+  pre_tasks:
+    - set_fact:
+        postgresql_repo: "https://download.postgresql.org/pub/repos/yum/9.5/redhat/rhel-7-x86_64/pgdg-redhat95-9.5-3.noarch.rpm"
+        postgresql_packages:
+          - postgresql95
+      when: ansible_os_family == 'RedHat' and ansible_distribution_version.split('.')[0] == '7'
   roles:
     - { role: juju4.adduser, adduser_user_name: _scumblr, adduser_user_home: '/home/_scumblr', adduser_user_comments: 'Scumblr rails app user', adduser_public_keys: [], adduser_sudoroot: false }
     - geerlingguy.postgresql
