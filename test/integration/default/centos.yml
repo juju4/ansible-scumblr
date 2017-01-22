@@ -1,0 +1,40 @@
+---
+
+- hosts: all
+  vars:
+    - scumblr_rails_user: _scumblr
+    - scumblr_rails_env: development
+    - rbenv_repo: "https://github.com/sstephenson/rbenv.git"
+    - rbenv_plugins:
+        - { name: "ruby-build",         repo: "https://github.com/sstephenson/ruby-build.git",         version: "v20160913" }
+        - { name: "rbenv-rehash",       repo: "https://github.com/rbenv/rbenv-gem-rehash.git",         version: "v1.0.0" }
+    - rbenv_users:
+        - "{{ scumblr_rails_user }}"
+## Scumblr v2
+    - scumblr_version: v2.0
+    - rbenv:
+        env: user
+        version: v1.0.0
+        ruby_version: 2.3.1
+    - scumblr_db_adapter: postgresql
+    - scumblr_db_database: db-scumblr-postgresql
+    - scumblr_db_user: user-scumblr
+    - scumblr_db_pass: pass-scumblr
+    - scumblr_db_host: localhost
+    - scumblr_db_port: 5432
+    - postgresql_databases:
+        - name: "{{ scumblr_db_database }}_{{ scumblr_rails_env }}"
+    - postgresql_users:
+        - name: "{{ scumblr_db_user }}"
+          password: "{{ scumblr_db_pass }}"
+          db: "{{ scumblr_db_database }}_{{ scumblr_rails_env }}"
+## settings for geerlingguy.postgresql to get more recent release (Redhat)
+    - postgresql_repo: "https://download.postgresql.org/pub/repos/yum/9.5/redhat/rhel-7-x86_64/pgdg-redhat95-9.5-3.noarch.rpm"
+    - postgresql_packages:
+        - postgresql95
+  roles:
+    - { role: juju4.adduser, adduser_user_name: _scumblr, adduser_user_home: '/home/_scumblr', adduser_user_comments: 'Scumblr rails app user', adduser_public_keys: [], adduser_sudoroot: false }
+    - geerlingguy.postgresql
+    - juju4.sketchy
+    - juju4.scumblr
+
