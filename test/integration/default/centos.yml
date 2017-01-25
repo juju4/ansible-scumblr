@@ -32,6 +32,11 @@
     - postgresql_repo: "https://download.postgresql.org/pub/repos/yum/9.5/redhat/rhel-7-x86_64/pgdg-redhat95-9.5-3.noarch.rpm"
     - postgresql_packages:
         - postgresql95
+        - postgresql95-server
+    - postgresql_daemon: postgresql-9.5
+    - postgresql_bin_path: '/usr/pgsql-9.5/bin'
+    - postgresql_data_dir: '/var/lib/pgsql/9.5/data'
+    - postgresql_config_path: '/var/lib/pgsql/9.5/data'
   roles:
     - { role: juju4.adduser, adduser_user_name: _scumblr, adduser_user_home: '/home/_scumblr', adduser_user_comments: 'Scumblr rails app user', adduser_public_keys: [], adduser_sudoroot: false }
     - geerlingguy.postgresql
