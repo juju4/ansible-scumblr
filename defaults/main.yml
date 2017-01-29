@@ -5,7 +5,6 @@ backupdir: /var/_backup
 
 #scumblr_version: v1.1
 #rails_version: 4.0.9
-## Not tested
 scumblr_version: v2.0
 #scumblr_version: HEAD
 rails_version: 4.2.6
