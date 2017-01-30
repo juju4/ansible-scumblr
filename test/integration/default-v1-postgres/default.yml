@@ -10,6 +10,15 @@
     - scumblr_db_host: localhost
     - scumblr_db_port: 5432
     - scumblr_version: v1.1
+    - rails_version: 4.0.9
+    - scumblr_gems:
+        - { p: bundler, v: 1.13.2 }
+        - { p: rails, v: "{{ rails_version }}" }
+        - { p: nokogiri, v: 1.6.8.1 }
+        - { p: devise, v: 3.3.0 }
+        - { p: cancan, v: 1.6.10 }
+        - { p: sidekiq, v: 4.1.4 }
+        - { p: json, v: 1.8.1 }
     - rbenv:
         env: user
         version: v1.0.0
