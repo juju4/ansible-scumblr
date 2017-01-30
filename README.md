@@ -1,4 +1,5 @@
-[![Build Status](https://travis-ci.org/juju4/ansible-scumblr.svg?branch=master)](https://travis-ci.org/juju4/ansible-scumblr)
+[![Build Status - Master](https://travis-ci.org/juju4/ansible-scumblr.svg?branch=master)](https://travis-ci.org/juju4/ansible-scumblr)
+[![Build Status - Devel](https://travis-ci.org/juju4/ansible-scumblr.svg?branch=devel)](https://travis-ci.org/juju4/ansible-scumblr/branches)
 # Scumblr ansible role
 
 Ansible role to setup Netflix scumblr.
@@ -35,7 +36,7 @@ For example
 ```
 - host: myhost
   roles:
-    - scumblr
+    - juju4.scumblr
 ```
 
 And connect at the end on http://IP:8080
@@ -79,7 +80,7 @@ Other variables are also available for API key of Facebook, Google, Youtube and 
 you can test this role with test kitchen.
 In the role folder, run
 ```
-$ cd /path/to/roles/scumblr
+$ cd /path/to/roles/juju4.scumblr
 $ kitchen verify
 $ kitchen login
 ```
