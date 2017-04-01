@@ -15,11 +15,12 @@ sudo -u postgres pg_dump "{{ scumblr_db_database }}_{{ scumblr_rails_env }}" > $
 
 tar czf $destfile $dirs $dest/pg_dump-scumblr.sql
 rm $dest/pg_dump-scumblr.sql
-tar tzf $destfile > /dev/null
 
 {% else %}
 dirs="{{ scumblr_root }}/config {{ scumblr_root }}/db"
 tar czf $destfile $dirs
-tar tzf $destfile > /dev/null
 
 {% endif %}
+tar tzf $destfile > /dev/null
+openssl dgst -sha512 $destfile > $destfile.distinfo
+
