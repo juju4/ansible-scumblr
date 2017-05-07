@@ -76,7 +76,7 @@ script:
 #  - 'sudo docker exec --tty "$(cat ${container_id})" /etc/ansible/roles/juju4.scumblr/test/integration/default/serverspec/run-local-tests.sh'
 
   # Clean up
-  - 'sudo docker stop "$(cat ${container_id})"'
+#  - 'sudo docker stop "$(cat ${container_id})"'
 
 after_failure:
   # Check what happened on systemd systems.
