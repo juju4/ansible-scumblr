@@ -66,10 +66,13 @@
 - debug: var=ansible_env
 - command: find /home/_scumblr/.rbenv/
   register: rbenvfind
-- debug: var=rbenvfind
+- debug: var=rbenvfind.stdout_lines
 - command: "bash -lc \"env\""
   register: bashenv
 - debug: var=bashenv
+- command: gem env home
+  register: gemhome
+- debug: var=gemhome.stdout_lines
 ## FIXME! not executing inside rbenv
 #- gem: name="{{ item }}" state=present user_install=yes
 ## FIXME! not idempotent... quick stat to avoid repetition but far from perfect

@@ -20,6 +20,9 @@
         version: v1.0.0
 ## From scumblr wiki (bundle command dependency) - v1
         ruby_version: 2.0.0-p481
+        default_ruby: 2.0.0-p481
+        rubies:
+          - version: 2.0.0-p481
     - rbenv_repo: "https://github.com/sstephenson/rbenv.git"
     - rbenv_plugins:
         - { name: "ruby-build",         repo: "https://github.com/sstephenson/ruby-build.git",         version: "v20160913" }
