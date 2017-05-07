@@ -16,6 +16,9 @@
         env: user
         version: v1.0.0
         ruby_version: 2.3.1
+        default_ruby: 2.3.1
+        rubies:
+          - version: 2.3.1
     - scumblr_db_adapter: postgresql
     - scumblr_db_database: db-scumblr-postgresql
     - scumblr_db_user: user-scumblr
