@@ -17,7 +17,7 @@
         - { p: nokogiri, v: 1.6.8.1 }
         - { p: devise, v: 3.3.0 }
         - { p: cancan, v: 1.6.10 }
-        - { p: sidekiq, v: 4.1.4 }
+        - { p: sidekiq, v: 3.0.2 }
         - { p: json, v: 1.8.1 }
     - rbenv:
         env: user
