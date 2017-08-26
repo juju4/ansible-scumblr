@@ -11,7 +11,7 @@ destfile=$dest/backup-scumblr-$date.tar.gz
 
 {% if scumblr_db_adapter is defined and scumblr_db_adapter == 'postgresql' %}
 dirs="{{ scumblr_root }}/config"
-sudo -u postgres pg_dump "{{ scumblr_db_database }}_{{ scumblr_rails_env }}" > $dest/pg_dump-scumblr.sql
+sudo -u postgres pg_dump -c "{{ scumblr_db_database }}_{{ scumblr_rails_env }}" > $dest/pg_dump-scumblr.sql
 
 tar czf $destfile $dirs $dest/pg_dump-scumblr.sql
 rm $dest/pg_dump-scumblr.sql
