@@ -8,7 +8,7 @@ transport:
 
 provisioner:
   name: ansible_playbook
-  roles_path: ../../roles
+  roles_path: ../
   hosts: test-kitchen
 #  ansible_verbose: true
   ansible_verbose: false
@@ -31,4 +31,40 @@ suites:
   - name: default
     run_list:
     attributes:
+    includes:
+      - ubuntu-16.04
+      - ubuntu-14.04
+      - centos-7.1
+  - name: default-postgres
+    run_list:
+    attributes:
+    includes:
+      - ubuntu-16.04
+      - ubuntu-14.04
+      - centos-7.1
+    provisioner:
+      name: ansible_playbook
+      playbook: test/integration/default/centos.yml
+  - name: default-v1
+    run_list:
+    attributes:
+    includes:
+      - ubuntu-16.04
+      - ubuntu-14.04
+      - centos-7.1
+    provisioner:
+      name: ansible_playbook
+      playbook: test/integration/default-v1/default.yml
+  - name: default-v1-postgres
+    run_list:
+    attributes:
+    includes:
+      - ubuntu-16.04
+      - ubuntu-14.04
+#      - centos-7.1
+#      - centos-6
+    provisioner:
+      name: ansible_playbook
+      playbook: test/integration/default-v1-postgres/default.yml
+
 

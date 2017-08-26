@@ -11,11 +11,12 @@ env:
     version: 7
     init: /usr/lib/systemd/systemd
     run_opts: "'--privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro'"
+    suite: default
   - distribution: ubuntu
     version: 16.04
     init: /lib/systemd/systemd
     run_opts: "'--privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro'"
-#    run_opts: "--cap-add SYS_ADMIN"
+    suite: default
 #  - distribution: ubuntu
 #    version: 14.04
 #    init: /sbin/init
@@ -32,6 +33,36 @@ env:
 #    version: 8
 #    init: /lib/systemd/systemd
 #    run_opts: "'--privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro'"
+  - distribution: centos
+    version: 7
+    init: /usr/lib/systemd/systemd
+    run_opts: "'--privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro'"
+    suite: default-postgres
+  - distribution: ubuntu
+    version: 16.04
+    init: /lib/systemd/systemd
+    run_opts: "'--privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro'"
+    suite: default-postgres
+  - distribution: centos
+    version: 7
+    init: /usr/lib/systemd/systemd
+    run_opts: "'--privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro'"
+    suite: default-v1
+  - distribution: ubuntu
+    version: 16.04
+    init: /lib/systemd/systemd
+    run_opts: "'--privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro'"
+    suite: default-v1
+#  - distribution: centos
+#    version: 7
+#    init: /usr/lib/systemd/systemd
+#    run_opts: "'--privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro'"
+#    suite: default-v1-postgres
+  - distribution: ubuntu
+    version: 16.04
+    init: /lib/systemd/systemd
+    run_opts: "'--privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro'"
+    suite: default-v1-postgres
 
 services:
   - docker
