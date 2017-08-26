@@ -359,38 +359,8 @@
     user=root
     cron_file=ansible_scumblr-backup
 
-- stat: "path={{ scumblr_db_restorefile }} checksum_algorithm=sha256"
-  register: restorefile
-  when: scumblr_db_restorefile is defined and scumblr_db_restorefile != ''
-- stat: path="{{ backupdir }}/.psql_restore-{{ restorefile.stat.checksum }}"
-  register: restored
-  when: scumblr_db_restorefile is defined and scumblr_db_restorefile != ''
-- block:
-    - name: ensure dest backup dir exists
-      file: "dest={{ backupdir }} state=directory mode=0700"
-    - name: push backup file to system
-      copy: "src={{ scumblr_db_restorefile }} dest={{ backupdir }}/{{ scumblr_db_restorefile | basename }} mode=0600"
-    - name: give permissions to postgres user
-      acl: "name={{ item.n }} entity=postgres etype=user permissions={{ item.p }} state=present"
-      with_items:
-        - { n: "{{ backupdir }}/{{ scumblr_db_restorefile | basename }}", p: "r--" }
-        - { n: "{{ backupdir }}", p: "r-x" }
-    - name: restore database
-      command: "{{ item }}"
-      with_items:
-        - "psql --set ON_ERROR_STOP=off -f {{ backupdir }}/{{ scumblr_db_restorefile | basename }} \"{{ scumblr_db_database }}_{{ scumblr_rails_env }}\""
-        - "vacuumdb --dbname=\"{{ scumblr_db_database }}_{{ scumblr_rails_env }}\" --analyze --verbose"
-      become: yes
-      become_user: postgres
-      ignore_errors: true
-    - name: remove permissions to postgres user
-      acl: "name={{ item.n }} entity=postgres etype=user state=absent"
-      with_items:
-        - { n: "{{ backupdir }}/{{ scumblr_db_restorefile | basename }}" }
-        - { n: "{{ backupdir }}" }
-    - name: add restoration marker
-      file: "dest={{ backupdir }}/.psql_restore-{{ restorefile.stat.checksum }} state=touch"
-  when: (scumblr_db_adapter is defined and scumblr_db_adapter == 'postgresql') and scumblr_db_restorefile is defined and scumblr_db_restorefile != '' and not restored.stat.exists
+- include: restore.yml
+  when: (scumblr_db_adapter is defined and scumblr_db_adapter == 'postgresql') and scumblr_db_restorefile is defined and scumblr_db_restorefile != ''
 
 - name: ensure systemd services for sidekiq and rails/scumblr are enabled and started
   service: name={{ item }} state=started enabled=yes

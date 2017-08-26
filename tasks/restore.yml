@@ -1,0 +1,36 @@
+---
+
+- name: Get database restore file hash
+  stat: "path={{ scumblr_db_restorefile }} checksum_algorithm=sha256"
+  register: restorefile
+
+- name: Check if restore file has already been restored
+  stat: path="{{ backupdir }}/.psql_restore-{{ restorefile.stat.checksum }}"
+  register: restored
+
+- block:
+    - name: ensure dest backup dir exists
+      file: "dest={{ backupdir }} state=directory mode=0700"
+    - name: push backup file to system
+      copy: "src={{ scumblr_db_restorefile }} dest={{ backupdir }}/{{ scumblr_db_restorefile | basename }} mode=0600"
+    - name: give permissions to postgres user
+      acl: "name={{ item.n }} entity=postgres etype=user permissions={{ item.p }} state=present"
+      with_items:
+        - { n: "{{ backupdir }}/{{ scumblr_db_restorefile | basename }}", p: "r--" }
+        - { n: "{{ backupdir }}", p: "r-x" }
+    - name: restore database
+      command: "{{ item }}"
+      with_items:
+        - "psql --set ON_ERROR_STOP=off -f {{ backupdir }}/{{ scumblr_db_restorefile | basename }} \"{{ scumblr_db_database }}_{{ scumblr_rails_env }}\""
+        - "vacuumdb --dbname=\"{{ scumblr_db_database }}_{{ scumblr_rails_env }}\" --analyze --verbose"
+      become: yes
+      become_user: postgres
+      ignore_errors: true
+    - name: remove permissions to postgres user
+      acl: "name={{ item.n }} entity=postgres etype=user state=absent"
+      with_items:
+        - { n: "{{ backupdir }}/{{ scumblr_db_restorefile | basename }}" }
+        - { n: "{{ backupdir }}" }
+    - name: add restoration marker
+      file: "dest={{ backupdir }}/.psql_restore-{{ restorefile.stat.checksum }} state=touch"
+  when: not restored.stat.exists
