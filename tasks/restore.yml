@@ -1,12 +1,14 @@
 ---
 
 - name: Get database restore file hash
-  stat: "path={{ scumblr_db_restorefile }} checksum_algorithm=sha256"
+  local_action: "stat path={{ jira_db_restorefile }} checksum_algorithm=sha256"
   register: restorefile
+  become: no
 
 - name: Check if restore file has already been restored
   stat: path="{{ backupdir }}/.psql_restore-{{ restorefile.stat.checksum }}"
   register: restored
+  when: restorefile.stat.exists
 
 - block:
     - name: ensure dest backup dir exists
@@ -33,4 +35,4 @@
         - { n: "{{ backupdir }}" }
     - name: add restoration marker
       file: "dest={{ backupdir }}/.psql_restore-{{ restorefile.stat.checksum }} state=touch"
-  when: not restored.stat.exists
+  when: restorefile.stat.exists and not restored.stat.exists
