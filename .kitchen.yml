@@ -34,13 +34,13 @@ suites:
     includes:
       - ubuntu-16.04
       - ubuntu-14.04
-      - centos-7
-  - name: default-postgres
+#      - centos-7
+  - name: default-rhel
     run_list:
     attributes:
     includes:
-      - ubuntu-16.04
-      - ubuntu-14.04
+#      - ubuntu-16.04
+#      - ubuntu-14.04
       - centos-7
     provisioner:
       name: ansible_playbook
