@@ -91,7 +91,7 @@
   command: "sudo -Hiu {{ scumblr_rails_user }} bash -lc \"gem install {{ item.p }} -v {{ item.v }}\" chdir={{ scumblr_root }}"
   with_items: "{{ scumblr_gems }}"
   when: not gemdep.stat.exists
- 
+
 ## ignore_errors as if repeating, get: msg: Local modifications exist in repository (force=no).
 - debug: var=scumblr_version
 - name: git clone scumblr
