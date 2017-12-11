@@ -49,3 +49,39 @@
     - restart sidekiq - systemd
     - restart rails/scumblr - systemd
 
+# https://github.com/ansible/ansible/issues/16612
+- block:
+    - debug: var=ansible_selinux
+    - name: RedHat | Ensure selinux dependencies are present
+      package:
+        name: libselinux-python
+        state: present
+    - action: setup
+    - debug: var=ansible_selinux
+  when: ansible_os_family == "RedHat"
+- block:
+    - name: RedHat | Ensure selinux dependencies are present
+      package:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - libselinux-python
+        - libsemanage-python
+        - policycoreutils-python
+
+    - name: RedHat | Allow proxy to network connect in selinux
+      seboolean:
+        name: httpd_can_network_connect
+        state: yes
+        persistent: yes
+
+# https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Managing_Confined_Services/sect-Managing_Confined_Services-Configuration_examples-Changing_port_numbers.html
+# https://wiki.centos.org/HowTos/SELinux#head-ad837f60830442ae77a81aedd10c20305a811388
+    - name: RedHat | Allow httpd to listen to unusual ports
+      seport:
+        ports: "{{ scumblr_nginx_listen }}"
+        proto: tcp
+        setype: http_port_t
+        state: present
+      when: scumblr_nginx_listen != 80 and scumblr_nginx_listen != 443
+  when: ansible_os_family == "RedHat" and ansible_selinux.status is defined and ansible_selinux.status != 'disabled'
