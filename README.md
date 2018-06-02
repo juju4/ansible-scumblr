@@ -16,10 +16,11 @@ It was tested on the following versions:
  * 1.9
  * 2.0
  * 2.2
+ * 2.5
 
 ### Operating systems
 
-Tested with vagrant only on Ubuntu 14.04 for now but should work on 12.04 and similar debian based systems.
+Tested on Ubuntu 14.04, 16.04 and 18.04 but should work on similar debian based systems.
 More work is needed for redhat-based distribution or other Unix.
 
 ### Dependencies
