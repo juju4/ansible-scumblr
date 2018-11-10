@@ -13,3 +13,35 @@ postgres_pkg:
 
 nginx_confdir: /etc/nginx/sites-available
 
+scumblr_pkgs:
+    - git
+    - libxml2-dev
+    - build-essential
+    - bison
+    - openssl
+    - zlib1g
+    - libxslt1.1
+    - libssl-dev
+#    - libxslt-dev      ## Note: it's an alias and requesting it, alter apt output in a way ansible believes task is always in changed state. BUG/FIXME!
+    - libxslt1.1
+    - libxslt1-dev
+    - libxml2
+    - libffi-dev
+    - libpq-dev
+    - autoconf
+    - libc6-dev
+    - libreadline6-dev
+    - zlib1g-dev
+    - libtool
+    - libsqlite3-dev
+    - libcurl3
+    - libmagickcore-dev
+    - ruby-build
+#    - ruby-dev
+    - libmagickwand-dev
+    - imagemagick
+#    - bundler
+    - redis-server
+    - acl
+    - debianutils
+    - nginx
