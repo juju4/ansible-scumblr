@@ -43,7 +43,7 @@
 - name: enforce no-document for gem
   lineinfile:
     dest: "{{ scumblr_rails_user_home }}/.gemrc"
-    line: "gem: --no-document"
+    line: "gem: --no-document --no-rdoc --no-ri"
     owner: "{{ scumblr_rails_user }}"
     mode: '0600'
     create: yes
