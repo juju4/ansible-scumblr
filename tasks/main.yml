@@ -40,6 +40,14 @@
 - name: ensure right owner for .rbenv
   file: "dest={{ scumblr_rails_user_home }}/.rbenv owner={{ scumblr_rails_user }} recurse=yes state=directory"
 
+- name: enforce no-document for gem
+  lineinfile:
+    dest: "{{ scumblr_rails_user_home }}/.gemrc"
+    line: "gem: --no-document"
+    owner: "{{ scumblr_rails_user }}"
+    mode: '0600'
+    create: yes
+
 - name: update bashrc with appropriate rails env
   lineinfile: 'dest={{ scumblr_rails_user_home }}/.bashrc line="{{ item }}"'
 #  lineinfile: 'dest={{ scumblr_rails_user_home }}/.bashrc line=\\"{{ item }}\\"'
