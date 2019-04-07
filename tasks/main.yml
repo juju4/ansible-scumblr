@@ -81,14 +81,13 @@
 - stat: path="{{ scumblr_rails_user_home }}/.rbenv/shims/sidekiq"
   register: gemdep
 - name: install gem dependencies inside rbenv
-#  command: "bash -lc \"gem install {{ item.p }} -v {{ item.v }}\" chdir={{ scumblr_root }}"
-#  with_items: "{{ scumblr_gems }}"
-#  become: yes
-#  become_user: "{{ scumblr_rails_user }}"
-## FIXME! v2.2. seems required under travis, http://docs.ansible.com/ansible/become.html
-#  become_flags: "-H"
-#  become_method: su
-  command: "sudo -Hiu {{ scumblr_rails_user }} bash -lc \"gem install {{ item.p }} -v {{ item.v }}\" chdir={{ scumblr_root }}"
+  command: "bash -lc \"gem install {{ item.p }} -v {{ item.v }}\""
+  args:
+    chdir: "{{ scumblr_root }}"
+  become: yes
+  become_user: "{{ scumblr_rails_user }}"
+  become_flags: "-Hi"
+  become_method: sudo
   with_items: "{{ scumblr_gems }}"
   when: not gemdep.stat.exists
 
