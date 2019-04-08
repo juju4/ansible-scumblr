@@ -137,10 +137,12 @@
 - name: debug
   command: "{{ item }}"
   with_items:
-#    - "bash -lc \"bundle install\" chdir={{ scumblr_root }}"
-#    - "bash -lc \"bundle check\" chdir={{ scumblr_root }}"
-    - "bash -lc \"gem list\" chdir={{ scumblr_root }}"
-    - "bash -lc \"gem env\" chdir={{ scumblr_root }}"
+#    - "bash -lc \"bundle install\""
+#    - "bash -lc \"bundle check\""
+    - "bash -lc \"gem list\""
+    - "bash -lc \"gem env\""
+  args:
+    chdir: "{{ scumblr_root }}"
   register: d
   changed_when: false
   become: yes
@@ -152,7 +154,9 @@
 - stat: path={{ scumblr_root }}/.ansible_scumblrbundle
   register: touchbundle
 - name: bundle install of scumblr
-  command: "bash -lc \"bundle install\" chdir={{ scumblr_root }}"
+  command: "bash -lc \"bundle install\""
+  args:
+          chdir: "{{ scumblr_root }}"
 #  bundler: "state=present chdir={{ scumblr_root }} executable={{ scumblr_rails_user_home }}/.rbenv/shims/bundle"
   become: yes
   become_user: "{{ scumblr_rails_user }}"
@@ -167,7 +171,9 @@
 ## travis only (kitchen OK): FAILED! => {"changed": true, "cmd": ["bash", "-lc", "rake db:create"], "delta": "0:00:02.775480", "end": "2016-04-07 11:39:09.555950", "failed": true, "invocation": {"module_args": {"_raw_params": "bash -lc \"rake db:create\"", "_uses_shell": false, "chdir": "/var/Scumblr", "creates": null, "executable": null, "removes": null, "warn": true}, "module_name": "command"}, "rc": 1, "start": "2016-04-07 11:39:06.780470", "stderr": "rake aborted!\nGem::LoadError: You have already activated rake 10.4.2, but your Gemfile requires rake 10.3.2. Prepending `bundle exec` to your command may solve this.\n/usr/local/rvm/gems/ruby-2.2.3/gems/bundler-1.11.2/lib/bundler/runtime.rb:34:in `block in setup'\n/usr/local/rvm/gems/ruby-2.2.3/gems/bundler-1.11.2/lib/bundler/runtime.rb:19:in `setup'\n/usr/local/rvm/gems/ruby-2.2.3/gems/bundler-1.11.2/lib/bundler.rb:92:in `setup'\n/usr/local/rvm/gems/ruby-2.2.3/gems/bundler-1.11.2/lib/bundler/setup.rb:18:in `<top (required)>'\n/var/Scumblr/config/boot.rb:21:in `<top (required)>'\n/var/Scumblr/config/application.rb:16:in `<top (required)>'\n/var/Scumblr/Rakefile:5:in `<top (required)>'\n(See full trace by running task with --trace)", "stdout": "", "stdout_lines": [], "warnings": []}
 - name: rake db:create
 #  command: "bash -lc \"rake db:create\" chdir={{ scumblr_root }}"
-  command: "bash -lc \"bundle exec rake db:create\" chdir={{ scumblr_root }}"
+  command: "bash -lc \"bundle exec rake db:create\""
+  args:
+    chdir: "{{ scumblr_root }}"
   environment:
     RAILS_ENV: '{{ scumblr_rails_env }}'
   become: yes
@@ -185,7 +191,9 @@
   register: touchdbschemaload
 - block:
     - name: rake db:schema:load
-      command: "bash -lc \"bundle exec rake db:schema:load\" chdir={{ scumblr_root }}"
+      command: "bash -lc \"bundle exec rake db:schema:load\""
+      args:
+        chdir: "{{ scumblr_root }}"
       environment:
         RAILS_ENV: '{{ scumblr_rails_env }}'
       become: yes
@@ -194,7 +202,9 @@
   when: not touchdbschemaload.stat.exists and scumblr_version == 'v1.1'
 - block:
     - name: rake db:structure:load
-      command: "bash -lc \"bundle exec rake db:structure:load\" chdir={{ scumblr_root }}"
+      command: "bash -lc \"bundle exec rake db:structure:load\""
+      args:
+        chdir: "{{ scumblr_root }}"
       environment:
         RAILS_ENV: '{{ scumblr_rails_env }}'
       become: yes
@@ -209,7 +219,9 @@
   when: not touchdbschemaload.stat.exists
 
 - name: generate a rake secret 1
-  command: "bash -lc \"bundle exec rake secret\" chdir={{ scumblr_root }}"
+  command: "bash -lc \"bundle exec rake secret\""
+  args:
+    chdir: "{{ scumblr_root }}"
   environment:
     RAILS_ENV: '{{ scumblr_rails_env }}'
   become: yes
@@ -228,7 +240,9 @@
   no_log: True
 
 - name: generate a rake secret 2
-  command: "bash -lc \"bundle exec rake secret\" chdir={{ scumblr_root }}"
+  command: "bash -lc \"bundle exec rake secret\""
+  args:
+    chdir: "{{ scumblr_root }}"
   environment:
     RAILS_ENV: '{{ scumblr_rails_env }}'
   become: yes
@@ -276,7 +290,9 @@
   when: scumblr_version == 'v2.0'
 
 - name: check existing rails users
-  command: "bash -lc \"echo \\\"User.all\\\" | rails console\" chdir={{ scumblr_root }}"
+  command: "bash -lc \"echo \\\"User.all\\\" | rails console\""
+  args:
+    chdir: "{{ scumblr_root }}"
   environment:
     RAILS_ENV: '{{ scumblr_rails_env }}'
   become: yes
@@ -321,7 +337,10 @@
     - name: ensure extra providers path exists
       file: dest={{ scumblr_extra_path }} state=directory mode=0755
     - name: install extra providers gem dependencies inside rbenv
-      command: "bash -lc \"gem install {{ item.n }} -v {{ item.v }}\" chdir={{ scumblr_root }} creates={{ scumblr_rails_user_home }}/.rbenv/versions/{{ rbenv.ruby_version }}/lib/ruby/gems/{{ rbenv.ruby_version | regex_replace('-[p0-9]*', '') | regex_replace('gems/2.3.1', 'gems/2.3.0') }}/gems/{{ item.n }}-{{ item.v }}"
+      command: "bash -lc \"gem install {{ item.n }} -v {{ item.v }}\""
+      args:
+        chdir: "{{ scumblr_root }}"
+        creates: "{{ scumblr_rails_user_home }}/.rbenv/versions/{{ rbenv.ruby_version }}/lib/ruby/gems/{{ rbenv.ruby_version | regex_replace('-[p0-9]*', '') | regex_replace('gems/2.3.1', 'gems/2.3.0') }}/gems/{{ item.n }}-{{ item.v }}"
       with_items: "{{ scumblr_extra_gems }}"
       become: yes
       become_user: "{{ scumblr_rails_user }}"
