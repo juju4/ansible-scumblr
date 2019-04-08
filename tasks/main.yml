@@ -83,7 +83,7 @@
   register: which
   become: yes
   become_user: "{{ scumblr_rails_user }}"
-#- debug: var=which
+- debug: var=which
 - fail: msg="FATAL! Not right gem binary! where is rbenv gem?"
   when: which is defined and which.results[0].stdout != "{{ scumblr_rails_user_home }}/.rbenv/shims/gem"
 - stat: path="{{ scumblr_rails_user_home }}/.rbenv/shims/sidekiq"
