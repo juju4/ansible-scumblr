@@ -2,8 +2,7 @@
 ## https://github.com/Netflix/Scumblr/wiki
 
 - name: apt | scumblr packages dependencies
-  apt: name={{item}} state=present update_cache=yes cache_valid_time=3600
-  with_items: "{{ scumblr_pkgs }}"
+  apt: name={{ scumblr_pkgs }} state=present update_cache=yes cache_valid_time=3600
   register: deps
 #- debug: var=deps
 
@@ -30,7 +29,10 @@
       when: not sidekiqinit.stat.exists
 
     - name: Ubuntu | review configuration of upstart script for sidekiq
-      replace: dest=/etc/init/sidekiq.conf regexp="{{ item.re }}" replace="{{ item.rep }}"
+      replace:
+        dest: /etc/init/sidekiq.conf
+        regexp: "{{ item.re }}"
+        replace: "{{ item.rep }}"
       with_items:
         - { re: '^# setuid deploy', rep: 'setuid {{ scumblr_rails_user }}' }
         - { re: '^# env HOME=/home/deploy', rep: 'env HOME={{ scumblr_root }}' }
@@ -42,4 +44,3 @@
         - restart sidekiq - systemd
         - restart rails/scumblr - systemd
   when: ansible_distribution_release == 'trusty'
-

@@ -1,33 +1,35 @@
 ---
 
 - name: Redhat | Scumblr dependencies packages install
-  yum: name={{item}} state=present update_cache=yes
-  with_items:
-    - git
-    - libxml2-devel
-    - bison
-    - openssl
-    - zlib
-    - libxslt-devel
-    - openssl-devel
-    - libffi-devel
-    - libpqxx-devel
-    - autoconf
-    - glibc-devel
-    - readline-devel
-    - zlib-devel
-    - libtool
-    - sqlite-devel
-    - libcurl
-#    - libmagickcore-dev
-    - ruby-devel
-#    - libmagickwand-dev
-    - python-wand
-    - ImageMagick-devel
-    - acl
-    - crontabs
-    - which
-    - nginx
+  yum:
+    name:
+      - git
+      - libxml2-devel
+      - bison
+      - openssl
+      - zlib
+      - libxslt-devel
+      - openssl-devel
+      - libffi-devel
+      - libpqxx-devel
+      - autoconf
+      - glibc-devel
+      - readline-devel
+      - zlib-devel
+      - libtool
+      - sqlite-devel
+      - libcurl
+#      - libmagickcore-dev
+      - ruby-devel
+#      - libmagickwand-dev
+      - python-wand
+      - ImageMagick-devel
+      - acl
+      - crontabs
+      - which
+      - nginx
+    state: present
+    update_cache: yes
 
 - stat: path=/usr/lib/systemd/system/sidekiq.conf
   register: sidekiqinit
@@ -39,7 +41,10 @@
   when: not sidekiqinit.stat.exists
 
 - name: review configuration of upstart script for sidekiq
-  replace: dest=/usr/lib/systemd/system/sidekiq.conf regexp="{{ item.re }}" replace="{{ item.rep }}"
+  replace:
+    dest: /usr/lib/systemd/system/sidekiq.conf
+    regexp: "{{ item.re }}"
+    replace: "{{ item.rep }}"
   with_items:
     - { re: '^User=deploy', rep: 'User={{ scumblr_rails_user }}' }
     - { re: '^WorkingDirectory=/opt/myapp/current', rep: 'WorkingDirectory={{ scumblr_root }}' }
@@ -62,12 +67,11 @@
 - block:
     - name: RedHat | Ensure selinux dependencies are present
       package:
-        name: "{{ item }}"
+        name:
+          - libselinux-python
+          - libsemanage-python
+          - policycoreutils-python
         state: present
-      with_items:
-        - libselinux-python
-        - libsemanage-python
-        - policycoreutils-python
 
     - name: RedHat | Allow proxy to network connect in selinux
       seboolean:
