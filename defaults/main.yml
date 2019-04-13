@@ -95,7 +95,6 @@ scumblr_extra_config: []
 scumblr_gems:
     - { p: bundler, v: 1.13.2 }
     - { p: rails, v: "{{ rails_version }}" }
-    - { p: rdoc, v: 6.0.2 }
 #    - { p: devise, v: 3.5.7 }
     - { p: devise, v: 3.3.0 }
     - { p: cancan, v: 1.6.10 }
@@ -107,4 +106,5 @@ scumblr_gems:
 ## v2
     - { p: json, v: 2.0.2 }
     - { p: ruby_gntp, v: 0.3.4 }
-    - { p: oj, v: 2.10.1 }
+#    - { p: oj, v: 2.10.1 }
+    - { p: oj, v: 3.7.11 }
