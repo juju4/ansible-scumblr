@@ -129,9 +129,17 @@
 
 ## not idempotent = use gem 'rbenv-rehash'
 #- name: rbenv rehash
-#  command: "bash -lc \"rbenv rehash\" chdir={{ scumblr_root }}"
+#  command: "bash -lc \"rbenv rehash\""
+#  args:
+#    chdir: "{{ scumblr_root }}"
 #  become: yes
 #  become_user: "{{ scumblr_rails_user }}"
+
+- name: Ensure ~/.ruby-version matches requested version
+  replace:
+    dest: "{{ scumblr_root }}/.ruby-version"
+    regexp: "^2.*"
+    replace: "{{ rbenv.ruby_version }}"
 
 ## FIXME! travis/trusty: FAILED! => {"changed": true, "cmd": ["bash", "-lc", "bundle install"], "delta": "0:00:00.225054", "end": "2016-10-30 20:24:08.031412", "failed": true, "invocation": {"module_args": {"_raw_params": "bash -lc \"bundle install\"", "_uses_shell": false, "chdir": "/var/Scumblr", "creates": null, "executable": null, "removes": null, "warn": true}, "module_name": "command"}, "rc": 1, "start": "2016-10-30 20:24:07.806358", "stderr": "/home/_scumblr/.rbenv/versions/2.3.1/lib/ruby/2.3.0/rubygems/dependency.rb:319:in `to_specs': Could not find 'bundler' (>= 0.a) among 6 total gem(s) (Gem::LoadError)\nChecked in 'GEM_PATH=/home/travis/.rvm/gems/ruby-2.3.1:/home/travis/.rvm/gems/ruby-2.3.1@global:/home/_scumblr/.rbenv/plugins/rbenv-rehash', execute `gem env` for more information\n\tfrom /home/_scumblr/.rbenv/versions/2.3.1/lib/ruby/2.3.0/rubygems/dependency.rb:328:in `to_spec'\n\tfrom /home/_scumblr/.rbenv/versions/2.3.1/lib/ruby/2.3.0/rubygems/core_ext/kernel_gem.rb:65:in `gem'\n\tfrom /home/_scumblr/.rbenv/versions/2.3.1/bin/bundle:22:in `<main>'", "stdout": "", "stdout_lines": [], "warnings": []}
 - name: debug
@@ -148,6 +156,12 @@
   become: yes
   become_user: "{{ scumblr_rails_user }}"
 - debug: var=d
+
+- name: Remove Gemfile.lock
+  file:
+    dest: "{{ scumblr_root }}/Gemfile.lock"
+    state: absent
+
 ## bundler v2 OR https://github.com/drewda/ansible-rails
 ## FIXME! vagrant stalled on this task
 ## Note: kitchen works with both command, travis only with bash -lc...
@@ -156,7 +170,7 @@
 - name: bundle install of scumblr
   command: "bash -lc \"bundle install\""
   args:
-          chdir: "{{ scumblr_root }}"
+    chdir: "{{ scumblr_root }}"
 #  bundler: "state=present chdir={{ scumblr_root }} executable={{ scumblr_rails_user_home }}/.rbenv/shims/bundle"
   become: yes
   become_user: "{{ scumblr_rails_user }}"
