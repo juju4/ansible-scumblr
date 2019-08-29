@@ -1,8 +1,9 @@
+[![No Maintenance Intended](http://unmaintained.tech/badge.svg)](http://unmaintained.tech/)
+# WARNING! Scumblr project is DEPRECATED/LOOKING FOR MAINTAINERS since Aug 2018 -> Archived
+
 [![Build Status - Master](https://travis-ci.org/juju4/ansible-scumblr.svg?branch=master)](https://travis-ci.org/juju4/ansible-scumblr)
 [![Build Status - Devel](https://travis-ci.org/juju4/ansible-scumblr.svg?branch=devel)](https://travis-ci.org/juju4/ansible-scumblr/branches)
 # Scumblr ansible role
-
-WARNING! Scumblr project is DEPRECATED/LOOKING FOR MAINTAINERS since Aug 2018 -> role going to archive mode soon.
 
 Ansible role to setup Netflix scumblr.
 Scumblr is a web application that allows performing periodic searches and storing / taking actions on the identified results. Scumblr uses the Workflowable gem to allow setting up flexible workflows for different types of results.
